@@ -1,11 +1,12 @@
 import { StorageManager } from './storage.js';
-import { QUESTION_PACKS } from './packs.js';
+import { QUESTION_PACKS, TRANSLATIONS } from './packs.js';
 
 class App {
     constructor() {
         this.currentView = 'dashboard';
         this.activePackKey = 'adult';
         this.username = 'Benjamin';
+        this.currentLang = 'en';
         this.questions = [];
         this.currentQuestionIndex = 0;
         this.mediaStream = null;
@@ -14,6 +15,7 @@ class App {
         this.timerInterval = null;
         this.secondsElapsed = 0;
         this.maxSeconds = 300; // 5 minutes
+        this.deferredPrompt = null;
 
         this.initPWA();
         this.initListeners();
@@ -21,6 +23,7 @@ class App {
     }
 
     initPWA() {
+        // Service Worker registration & updates
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then((reg) => {
                 if (reg.waiting) {
@@ -61,6 +64,31 @@ class App {
         document.getElementById('close-modal-btn').addEventListener('click', () => {
             this.closeVideoModal();
         });
+
+        // Install PWA Prompt handling
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            // Show install modal if not already installed / dismissed this session
+            if (!sessionStorage.getItem('install_prompt_dismissed')) {
+                document.getElementById('install-modal').classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('confirm-install-btn').addEventListener('click', async () => {
+            document.getElementById('install-modal').classList.add('hidden');
+            if (this.deferredPrompt) {
+                this.deferredPrompt.prompt();
+                const { outcome } = await this.deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                this.deferredPrompt = null;
+            }
+        });
+
+        document.getElementById('dismiss-install-btn').addEventListener('click', () => {
+            document.getElementById('install-modal').classList.add('hidden');
+            sessionStorage.setItem('install_prompt_dismissed', 'true');
+        });
     }
 
     showUpdateModal(worker) {
@@ -85,16 +113,40 @@ class App {
         await StorageManager.initPersistence();
         this.activePackKey = await StorageManager.getSetting('active_pack', 'adult');
         this.username = await StorageManager.getSetting('username', 'Benjamin');
+        this.currentLang = await StorageManager.getSetting('language', 'en');
         
+        this.loadQuestionsForActivePack();
+        document.getElementById('header-username').textContent = this.username;
+        this.applyTranslations();
+        this.renderDashboard();
+    }
+
+    loadQuestionsForAppLang() {
+        const packData = QUESTION_PACKS[this.activePackKey];
+        return packData.questions.map(q => ({
+            id: q.id,
+            category: q.category[this.currentLang] || q.category['en'],
+            text: q.text[this.currentLang] || q.text['en']
+        }));
+    }
+
+    async loadQuestionsForActivePack() {
         const savedPacks = await StorageManager.getSetting('custom_packs', null);
         if (savedPacks && savedPacks[this.activePackKey]) {
             this.questions = savedPacks[this.activePackKey].questions;
         } else {
-            this.questions = QUESTION_PACKS[this.activePackKey].questions;
+            this.questions = this.loadQuestionsForAppLang();
         }
+    }
 
-        document.getElementById('header-username').textContent = this.username;
-        this.renderDashboard();
+    applyTranslations() {
+        const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (dict[key]) {
+                el.textContent = dict[key];
+            }
+        });
     }
 
     switchView(viewName) {
@@ -129,11 +181,12 @@ class App {
     async renderDashboard() {
         const recordings = await StorageManager.getAllRecordings();
         const container = document.getElementById('logs-container');
+        const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
 
         if (recordings.length === 0) {
             container.innerHTML = `
                 <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 text-center text-slate-400 text-xs">
-                    No videologs recorded yet. Start your first session above!
+                    ${dict.noSessions}
                 </div>
             `;
             return;
@@ -147,7 +200,7 @@ class App {
                     <p class="text-[10px] text-slate-400 mt-0.5">${new Date(rec.timestamp).toLocaleDateString()} • ${Math.round(rec.duration)}s</p>
                 </div>
                 <button onclick="window.playVideo('${rec.id}')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-2.5 py-1.5 rounded text-xs font-semibold transition shrink-0">
-                    Play
+                    ${dict.play}
                 </button>
             </div>
         `).join('');
@@ -155,10 +208,11 @@ class App {
 
     async renderSettings() {
         document.getElementById('username-input').value = this.username;
+        document.getElementById('language-selector').value = this.currentLang;
 
         const packSelector = document.getElementById('pack-selector');
         packSelector.innerHTML = Object.keys(QUESTION_PACKS).map(key => `
-            <option value="${key}" ${key === this.activePackKey ? 'selected' : ''}>${QUESTION_PACKS[key].name}</option>
+            <option value="${key}" ${key === this.activePackKey ? 'selected' : ''}>${QUESTION_PACKS[key].name[this.currentLang] || QUESTION_PACKS[key].name['en']}</option>
         `).join('');
 
         this.renderQuestionsEditor();
@@ -169,6 +223,19 @@ class App {
             await StorageManager.setSetting('username', this.username);
         };
 
+        document.getElementById('language-selector').onchange = async (e) => {
+            this.currentLang = e.target.value;
+            await StorageManager.setSetting('language', this.currentLang);
+            this.applyTranslations();
+            
+            // Reload default pack questions in new language if no custom edits
+            const savedPacks = await StorageManager.getSetting('custom_packs', null);
+            if (!savedPacks || !savedPacks[this.activePackKey]) {
+                this.questions = this.loadQuestionsForAppLang();
+            }
+            this.renderSettings();
+        };
+
         packSelector.onchange = async (e) => {
             this.activePackKey = e.target.value;
             await StorageManager.setSetting('active_pack', this.activePackKey);
@@ -177,7 +244,7 @@ class App {
             if (savedPacks[this.activePackKey]) {
                 this.questions = savedPacks[this.activePackKey].questions;
             } else {
-                this.questions = QUESTION_PACKS[this.activePackKey].questions;
+                this.questions = this.loadQuestionsForAppLang();
             }
             this.renderQuestionsEditor();
         };
@@ -196,11 +263,13 @@ class App {
 
     renderQuestionsEditor() {
         const listContainer = document.getElementById('questions-editor-list');
+        const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
+
         listContainer.innerHTML = this.questions.map((q, idx) => `
             <div class="bg-slate-900 border border-slate-700/80 rounded-lg p-3 space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-mono text-blue-400 font-bold">#${idx + 1}</span>
-                    <button onclick="window.removeQuestion(${idx})" class="text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded">Delete</button>
+                    <button onclick="window.removeQuestion(${idx})" class="text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded">${dict.delete}</button>
                 </div>
                 <div class="space-y-1.5">
                     <input type="text" value="${q.category}" onchange="window.updateQuestionProp(${idx}, 'category', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-[11px] text-blue-300 font-medium focus:outline-none" placeholder="Category">
@@ -325,6 +394,7 @@ class App {
         const blob = new Blob(this.recordedChunks, { type: this.mediaRecorder.mimeType || 'video/webm' });
         const q = this.questions[this.currentQuestionIndex];
         const recordingId = 'rec_' + Date.now();
+        const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
 
         const recordingObj = {
             id: recordingId,
@@ -361,7 +431,7 @@ class App {
         if (this.currentQuestionIndex < this.questions.length) {
             this.loadCurrentQuestion();
         } else {
-            alert('Session complete! All answers recorded and saved locally.');
+            alert(dict.sessionComplete);
             this.stopCameraAndReturn();
         }
     }
