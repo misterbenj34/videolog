@@ -25,13 +25,8 @@ class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then((reg) => {
-                // Check for updates immediately on load
                 reg.update();
-
-                // Periodic check for updates every 60 minutes while app is open
-                setInterval(() => {
-                    reg.update();
-                }, 60 * 60 * 1000);
+                setInterval(() => { reg.update(); }, 60 * 60 * 1000);
 
                 if (reg.waiting) {
                     this.showUpdateModal(reg.waiting);
@@ -106,6 +101,7 @@ class App {
 
     initListeners() {
         document.getElementById('start-session-btn').addEventListener('click', () => this.startSession());
+        document.getElementById('scan-folder-btn').addEventListener('click', () => this.scanDownloadsFolder());
         document.getElementById('cancel-recorder-btn').addEventListener('click', () => this.stopCameraAndReturn());
         
         document.getElementById('nav-dashboard').addEventListener('click', () => this.switchView('dashboard'));
@@ -113,6 +109,66 @@ class App {
 
         document.getElementById('record-btn').addEventListener('click', () => this.startRecording());
         document.getElementById('stop-btn').addEventListener('click', () => this.stopRecording());
+    }
+
+    async scanDownloadsFolder() {
+        if (!window.showDirectoryPicker) {
+            alert('File System Access API is not supported on this browser (try Chrome, Edge, or Desktop PWA).');
+            return;
+        }
+
+        try {
+            const dirHandle = await window.showDirectoryPicker();
+            let count = 0;
+            const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
+
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file' && entry.name.startsWith('Videolog -') && (entry.name.endsWith('.mp4') || entry.name.endsWith('.webm'))) {
+                    const file = await entry.getFile();
+                    
+                    // Parse filename: Videolog - Username - Category - YYYYMMDD.mp4
+                    const parts = entry.name.replace(/\.[^/.]+$/, "").split(' - ');
+                    const category = parts.length >= 3 ? parts[2] : 'General';
+                    const timestampStr = parts.length >= 4 ? parts[3] : new Date().toISOString().slice(0,10);
+                    
+                    // Convert YYYYMMDD to ISO date
+                    let isoDate = new Date().toISOString();
+                    if (timestampStr.length === 8) {
+                        const y = timestampStr.slice(0,4);
+                        const m = timestampStr.slice(4,6);
+                        const d = timestampStr.slice(6,8);
+                        isoDate = new Date(`${y}-${m}-${d}`).toISOString();
+                    }
+
+                    const recordingObj = {
+                        id: 'imported_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                        timestamp: isoDate,
+                        questionId: 'imported',
+                        questionText: entry.name,
+                        category: category,
+                        packKey: this.activePackKey,
+                        blob: file,
+                        duration: 0,
+                        mimeType: file.type || 'video/mp4'
+                    };
+
+                    await StorageManager.saveRecording(recordingObj);
+                    count++;
+                }
+            }
+
+            if (count > 0) {
+                alert(`${count} ${dict.importedCount}`);
+                this.renderDashboard();
+            } else {
+                alert('No matching Videolog files found in the selected folder.');
+            }
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error('Error scanning folder:', err);
+                alert('Error accessing folder. Please try again.');
+            }
+        }
     }
 
     async loadAppData() {
@@ -369,7 +425,7 @@ class App {
         this.mediaRecorder.start();
         document.getElementById('record-btn').classList.add('hidden');
         document.getElementById('stop-btn').classList.remove('hidden');
-        document.getElementById('timer-overlay').classList.add('hidden');
+        document.getElementById('timer-overlay').classList.remove('hidden');
 
         this.secondsElapsed = 0;
         this.updateTimerDisplay();

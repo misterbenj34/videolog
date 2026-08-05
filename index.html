@@ -40,13 +40,21 @@
                 </p>
             </div>
 
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg shrink-0">
-                <h2 class="text-md font-semibold mb-1" data-i18n="recordSession">Record Session</h2>
-                <p class="text-xs text-slate-400 mb-3" data-i18n="recordSubtitle">Answer your active pack questions one by one.</p>
-                <button id="start-session-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-sm">
-                    <i data-lucide="video" class="w-4 h-4"></i>
-                    <span data-i18n="startRecording">Start Recording Session</span>
-                </button>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg shrink-0 space-y-3">
+                <div>
+                    <h2 class="text-md font-semibold mb-1" data-i18n="recordSession">Record Session</h2>
+                    <p class="text-xs text-slate-400" data-i18n="recordSubtitle">Answer your active pack questions one by one.</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="start-session-btn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-xs">
+                        <i data-lucide="video" class="w-4 h-4"></i>
+                        <span data-i18n="startRecording">Start Recording Session</span>
+                    </button>
+                    <button id="scan-folder-btn" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 px-3 rounded-xl shadow transition flex items-center justify-center space-x-1.5 text-xs" title="Scan download folder for existing videologs">
+                        <i data-lucide="folder-search" class="w-4 h-4"></i>
+                        <span data-i18n="importFolder">Scan Folder</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Past Logs -->
@@ -54,7 +62,7 @@
                 <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider" data-i18n="recordedSessions">Recorded Sessions</h3>
                 <div id="logs-container" class="flex-1 overflow-y-auto space-y-2 pr-1">
                     <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 text-center text-slate-400 text-xs" data-i18n="noSessions">
-                        No videologs recorded yet. Start your first session above!
+                        No videologs recorded yet. Start your first session above or import existing files!
                     </div>
                 </div>
             </div>
@@ -158,7 +166,7 @@
 
             <!-- Version Footer -->
             <div class="text-center py-2 text-[10px] text-slate-500 font-mono shrink-0">
-                VideoLog v1.2.0 • Local-First PWA
+                VideoLog v1.3.0 • Local-First PWA
             </div>
         </section>
     </main>
