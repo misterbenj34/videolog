@@ -23,7 +23,6 @@ class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then((reg) => {
-                // If there's already a waiting worker upon load
                 if (reg.waiting) {
                     this.showUpdateModal(reg.waiting);
                 }
@@ -46,15 +45,28 @@ class App {
                 }
             });
         }
+
+        document.getElementById('refresh-app-btn').addEventListener('click', () => {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+            } else {
+                window.location.reload();
+            }
+        });
+
+        document.getElementById('dismiss-update-btn').addEventListener('click', () => {
+            document.getElementById('update-modal').classList.add('hidden');
+        });
+
+        document.getElementById('close-modal-btn').addEventListener('click', () => {
+            this.closeVideoModal();
+        });
     }
 
     showUpdateModal(worker) {
         document.getElementById('update-modal').classList.remove('hidden');
         document.getElementById('refresh-app-btn').onclick = () => {
             worker.postMessage({ type: 'SKIP_WAITING' });
-        };
-        document.getElementById('dismiss-update-btn').onclick = () => {
-            document.getElementById('update-modal').classList.add('hidden');
         };
     }
 
@@ -91,7 +103,6 @@ class App {
         document.getElementById('view-recorder').classList.add('hidden');
         document.getElementById('view-settings').classList.add('hidden');
 
-        // Update Bottom Nav Colors
         document.querySelectorAll('.nav-btn').forEach(btn => {
             const target = btn.getAttribute('data-target');
             if (target === viewName) {
@@ -186,12 +197,15 @@ class App {
     renderQuestionsEditor() {
         const listContainer = document.getElementById('questions-editor-list');
         listContainer.innerHTML = this.questions.map((q, idx) => `
-            <div class="bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 space-y-2">
-                <div class="flex items-center space-x-2">
-                    <input type="text" value="${q.category}" onchange="window.updateQuestionProp(${idx}, 'category', this.value)" class="w-1/3 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-[11px] text-blue-400 font-medium focus:outline-none" placeholder="Category">
-                    <button onclick="window.removeQuestion(${idx})" class="ml-auto text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded">Delete</button>
+            <div class="bg-slate-900 border border-slate-700/80 rounded-lg p-3 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-mono text-blue-400 font-bold">#${idx + 1}</span>
+                    <button onclick="window.removeQuestion(${idx})" class="text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded">Delete</button>
                 </div>
-                <textarea rows="2" onchange="window.updateQuestionProp(${idx}, 'text', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-white focus:outline-none">${q.text}</textarea>
+                <div class="space-y-1.5">
+                    <input type="text" value="${q.category}" onchange="window.updateQuestionProp(${idx}, 'category', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-[11px] text-blue-300 font-medium focus:outline-none" placeholder="Category">
+                    <textarea rows="2" onchange="window.updateQuestionProp(${idx}, 'text', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-white focus:outline-none">${q.text}</textarea>
+                </div>
             </div>
         `).join('');
     }
@@ -359,6 +373,34 @@ class App {
         clearInterval(this.timerInterval);
         this.switchView('dashboard');
     }
+
+    async openVideoModal(id) {
+        const recordings = await StorageManager.getAllRecordings();
+        const rec = recordings.find(r => r.id === id);
+        if (!rec || !rec.blob) {
+            alert('Video blob not found in storage.');
+            return;
+        }
+
+        const url = URL.createObjectURL(rec.blob);
+        document.getElementById('modal-category').textContent = rec.category;
+        document.getElementById('modal-question').textContent = rec.questionText;
+        document.getElementById('modal-timestamp').textContent = new Date(rec.timestamp).toLocaleString();
+        
+        const videoEl = document.getElementById('modal-video');
+        videoEl.src = url;
+        videoEl.type = rec.mimeType || 'video/webm';
+        
+        document.getElementById('video-modal').classList.remove('hidden');
+        videoEl.play().catch(e => console.log('Autoplay prevented:', e));
+    }
+
+    closeVideoModal() {
+        const videoEl = document.getElementById('modal-video');
+        videoEl.pause();
+        videoEl.src = '';
+        document.getElementById('video-modal').classList.add('hidden');
+    }
 }
 
 // Global helpers for inline HTML callbacks & video replay
@@ -378,31 +420,10 @@ window.removeQuestion = function(idx) {
     }
 };
 
-window.playVideo = async function(id) {
-    const recordings = await StorageManager.getAllRecordings();
-    const rec = recordings.find(r => r.id === id);
-    if (!rec || !rec.blob) {
-        alert('Video blob not found.');
-        return;
+window.playVideo = function(id) {
+    if (window.app) {
+        window.app.openVideoModal(id);
     }
-
-    const url = URL.createObjectURL(rec.blob);
-    const win = window.open();
-    if (!win) {
-        alert('Popup blocked! Please allow popups to view the video playback.');
-        return;
-    }
-    win.document.write(`
-        <html>
-        <head><title>VideoLog Playback</title></head>
-        <body style="background:#0f172a; color:#fff; font-family:sans-serif; text-align:center; padding:20px;">
-            <p style="color:#60a5fa; font-size:12px; text-transform:uppercase; margin-bottom:4px;">${rec.category}</p>
-            <h3 style="margin-top:0;">${rec.questionText}</h3>
-            <p style="font-size:12px; color:#94a3b8;">${new Date(rec.timestamp).toLocaleString()}</p>
-            <video controls autoplay style="max-width:100%; max-height:75vh; border-radius:12px; margin-top:10px;"><source src="${url}" type="${rec.mimeType || 'video/webm'}"></video>
-        </body>
-        </html>
-    `);
 };
 
 window.addEventListener('DOMContentLoaded', () => {

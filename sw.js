@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videolog-v2';
+const CACHE_NAME = 'videolog-v3';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -50,9 +50,7 @@ self.addEventListener('fetch', (event) => {
                     });
                 }
                 return networkResponse;
-            }).catch(() => {
-                // Ignore network errors if offline
-            });
+            }).catch(() => {});
 
             return cachedResponse || fetchPromise;
         })
