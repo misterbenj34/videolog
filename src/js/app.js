@@ -5,6 +5,7 @@ class App {
     constructor() {
         this.currentView = 'dashboard';
         this.activePackKey = 'adult';
+        this.username = 'Benjamin';
         this.questions = [];
         this.currentQuestionIndex = 0;
         this.mediaStream = null;
@@ -51,7 +52,17 @@ class App {
     async loadAppData() {
         await StorageManager.initPersistence();
         this.activePackKey = await StorageManager.getSetting('active_pack', 'adult');
-        this.questions = QUESTION_PACKS[this.activePackKey].questions;
+        this.username = await StorageManager.getSetting('username', 'Benjamin');
+        
+        // Load custom questions if saved, otherwise load default pack questions
+        const savedPacks = await StorageManager.getSetting('custom_packs', null);
+        if (savedPacks && savedPacks[this.activePackKey]) {
+            this.questions = savedPacks[this.activePackKey].questions;
+        } else {
+            this.questions = QUESTION_PACKS[this.activePackKey].questions;
+        }
+
+        document.getElementById('header-username').textContent = this.username;
         this.renderDashboard();
     }
 
@@ -66,6 +77,8 @@ class App {
             this.renderDashboard();
         } else if (viewName === 'recorder') {
             document.getElementById('view-recorder').classList.remove('hidden');
+            // Re-trigger lucide icons for recorder view
+            lucide.createIcons();
         } else if (viewName === 'settings') {
             document.getElementById('view-settings').classList.remove('hidden');
             this.renderSettings();
@@ -78,7 +91,7 @@ class App {
 
         if (recordings.length === 0) {
             container.innerHTML = `
-                <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 text-center text-slate-400 text-sm">
+                <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 text-center text-slate-400 text-xs">
                     No videologs recorded yet. Start your first session above!
                 </div>
             `;
@@ -86,49 +99,79 @@ class App {
         }
 
         container.innerHTML = recordings.map(rec => `
-            <div class="bg-slate-800 border border-slate-700 rounded-lg p-4 flex justify-between items-center">
-                <div>
-                    <h4 class="font-medium text-white text-sm">${rec.questionText}</h4>
-                    <p class="text-xs text-slate-400 mt-1">${new Date(rec.timestamp).toLocaleDateString()} • ${Math.round(rec.duration)}s</p>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg p-3 flex justify-between items-center shadow-sm">
+                <div class="min-w-0 pr-2">
+                    <span class="text-[10px] text-blue-400 uppercase font-semibold block">${rec.category}</span>
+                    <h4 class="font-medium text-white text-xs truncate">${rec.questionText}</h4>
+                    <p class="text-[10px] text-slate-400 mt-0.5">${new Date(rec.timestamp).toLocaleDateString()} • ${Math.round(rec.duration)}s</p>
                 </div>
-                <button onclick="window.playVideo('${rec.id}')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded text-xs font-semibold transition">
+                <button onclick="window.playVideo('${rec.id}')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-2.5 py-1.5 rounded text-xs font-semibold transition shrink-0">
                     Play
                 </button>
             </div>
         `).join('');
     }
 
-    renderSettings() {
-        const container = document.getElementById('view-settings');
-        container.innerHTML = `
-            <h2 class="text-lg font-semibold mb-4">Question Packs & Settings</h2>
-            <div class="space-y-4">
-                <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Select Active Question Pack</label>
-                    <select id="pack-selector" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white text-sm">
-                        ${Object.keys(QUESTION_PACKS).map(key => `
-                            <option value="${key}" ${key === this.activePackKey ? 'selected' : ''}>${QUESTION_PACKS[key].name}</option>
-                        `).join('')}
-                    </select>
-                </div>
-                <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
-                    <h3 class="text-sm font-medium text-slate-300 mb-2">Calendar Reminders</h3>
-                    <p class="text-xs text-slate-400 mb-3">Download an ICS reminder file to set a recurring reminder every 6 months.</p>
-                    <button id="download-ics-btn" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold py-2 px-4 rounded-lg transition">
-                        Download 6-Month Reminder (.ics)
-                    </button>
-                </div>
-            </div>
-        `;
+    async renderSettings() {
+        document.getElementById('username-input').value = this.username;
 
-        document.getElementById('pack-selector').addEventListener('change', async (e) => {
+        const packSelector = document.getElementById('pack-selector');
+        packSelector.innerHTML = Object.keys(QUESTION_PACKS).map(key => `
+            <option value="${key}" ${key === this.activePackKey ? 'selected' : ''}>${QUESTION_PACKS[key].name}</option>
+        `).join('');
+
+        this.renderQuestionsEditor();
+
+        // Listeners for settings inputs
+        document.getElementById('username-input').onchange = async (e) => {
+            this.username = e.target.value.trim() || 'User';
+            document.getElementById('header-username').textContent = this.username;
+            await StorageManager.setSetting('username', this.username);
+        };
+
+        packSelector.onchange = async (e) => {
             this.activePackKey = e.target.value;
-            this.questions = QUESTION_PACKS[this.activePackKey].questions;
             await StorageManager.setSetting('active_pack', this.activePackKey);
-            alert('Active question pack updated!');
-        });
+            
+            const savedPacks = await StorageManager.getSetting('custom_packs', {});
+            if (savedPacks[this.activePackKey]) {
+                this.questions = savedPacks[this.activePackKey].questions;
+            } else {
+                this.questions = QUESTION_PACKS[this.activePackKey].questions;
+            }
+            this.renderQuestionsEditor();
+        };
 
-        document.getElementById('download-ics-btn').addEventListener('click', () => this.downloadICS());
+        document.getElementById('add-question-btn').onclick = () => {
+            this.questions.push({
+                id: 'custom-' + Date.now(),
+                category: 'General',
+                text: 'New question text...'
+            });
+            this.saveAndRenderQuestions();
+        };
+
+        document.getElementById('download-ics-btn').onclick = () => this.downloadICS();
+    }
+
+    renderQuestionsEditor() {
+        const listContainer = document.getElementById('questions-editor-list');
+        listContainer.innerHTML = this.questions.map((q, idx) => `
+            <div class="bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 space-y-2">
+                <div class="flex items-center space-x-2">
+                    <input type="text" value="${q.category}" onchange="window.updateQuestionProp(${idx}, 'category', this.value)" class="w-1/3 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-[11px] text-blue-400 font-medium focus:outline-none" placeholder="Category">
+                    <button onclick="window.removeQuestion(${idx})" class="ml-auto text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded">Delete</button>
+                </div>
+                <textarea rows="2" onchange="window.updateQuestionProp(${idx}, 'text', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-white focus:outline-none">${q.text}</textarea>
+            </div>
+        `).join('');
+    }
+
+    async saveAndRenderQuestions() {
+        const savedPacks = await StorageManager.getSetting('custom_packs', {});
+        savedPacks[this.activePackKey] = { questions: this.questions };
+        await StorageManager.setSetting('custom_packs', savedPacks);
+        this.renderQuestionsEditor();
     }
 
     downloadICS() {
@@ -181,6 +224,7 @@ class App {
     loadCurrentQuestion() {
         const q = this.questions[this.currentQuestionIndex];
         document.getElementById('current-question-text').textContent = q.text;
+        document.getElementById('current-category-badge').textContent = q.category || 'General';
         document.getElementById('question-counter').textContent = `Question ${this.currentQuestionIndex + 1} of ${this.questions.length}`;
         document.getElementById('record-btn').classList.remove('hidden');
         document.getElementById('stop-btn').classList.add('hidden');
@@ -244,6 +288,7 @@ class App {
             timestamp: new Date().toISOString(),
             questionId: q.id,
             questionText: q.text,
+            category: q.category || 'General',
             packKey: this.activePackKey,
             blob: blob,
             duration: this.secondsElapsed,
@@ -253,12 +298,17 @@ class App {
         // 1. Save to IndexedDB
         await StorageManager.saveRecording(recordingObj);
 
-        // 2. Automatically download to local device / camera roll
+        // 2. Automatically download locally formatted as: Videolog - Username - Question category - YYYYMMDD
+        const now = new Date();
+        const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '');
+        const cleanUsername = this.username.replace(/[^a-zA-Z0-9-_]/g, '_');
+        const cleanCategory = (q.category || 'General').replace(/[^a-zA-Z0-9-_]/g, '_');
+        
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-        a.download = `videolog-${q.id}-${new Date().toISOString().slice(0,10)}.${ext}`;
+        a.download = `Videolog - ${cleanUsername} - ${cleanCategory} - ${yyyymmdd}.${ext}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -266,7 +316,6 @@ class App {
         // Advance to next question or finish session
         this.currentQuestionIndex++;
         if (this.currentQuestionIndex < this.questions.length) {
-            alert('Answer saved and downloaded! Moving to next question.');
             this.loadCurrentQuestion();
         } else {
             alert('Session complete! All answers recorded and saved locally.');
@@ -283,7 +332,23 @@ class App {
     }
 }
 
-// Global play helper
+// Global helpers for inline HTML callbacks
+window.updateQuestionProp = function(idx, prop, value) {
+    if (window.app && window.app.questions[window.app.questions.length > idx ? idx : 0]) {
+        window.app.questions[idx][prop] = value;
+        window.app.saveAndRenderQuestions();
+    }
+};
+
+window.removeQuestion = function(idx) {
+    if (window.app && window.app.questions.length > 1) {
+        window.app.questions.splice(idx, 1);
+        window.app.saveAndRenderQuestions();
+    } else {
+        alert('You must keep at least one question in the pack.');
+    }
+};
+
 window.playVideo = async function(id) {
     const recordings = await StorageManager.getAllRecordings();
     const rec = recordings.find(r => r.id === id);
@@ -295,9 +360,10 @@ window.playVideo = async function(id) {
         <html>
         <head><title>VideoLog Playback</title></head>
         <body style="background:#0f172a; color:#fff; font-family:sans-serif; text-align:center; padding:20px;">
+            <p style="color:#60a5fa; font-size:12px; text-transform:uppercase;">${rec.category}</p>
             <h3>${rec.questionText}</h3>
-            <p>${new Date(rec.timestamp).toLocaleString()}</p>
-            <video controls autoplay style="max-width:100%; max-height:80vh; border-radius:12px;"><source src="${url}" type="${rec.mimeType}"></video>
+            <p style="font-size:12px; color:#94a3b8;">${new Date(rec.timestamp).toLocaleString()}</p>
+            <video controls autoplay style="max-width:100%; max-height:75vh; border-radius:12px; margin-top:10px;"><source src="${url}" type="${rec.mimeType}"></video>
         </body>
         </html>
     `);
