@@ -1,12 +1,14 @@
-# Roadmap & Suivi des Sessions
+# Roadmap
 
-## Sessions Planifiées (Semestrielles)
-- [ ] **2026 - Session 1 (Été)** : Lancement du projet, mise en place de la structure et premier enregistrement.
-- [ ] **2026 - Session 2 (Hiver)** : Bilan de fin d'année et évolution des projets tech.
-- [ ] **2027 - Session 1 (Printemps)**
-- [ ] **2027 - Session 2 (Automne)**
+## Phase 1: Foundation & Local Recording
+- [ ] Minimal web interface (HTML/JS or lightweight frontend framework)
+- [ ] Browser MediaRecorder API integration for local video capture
+- [ ] Local download/export mechanism for recorded files
 
-## Structure des Notes de Session (Template)
-Chaque session de tournage est associée à un dossier `sessions/YYYY-MM/` contenant :
-- `notes.md` : Les notes préparatoires ou la transcription brute.
-- `questions.md` : Les points spécifiques abordés cette session-là.
+## Phase 2: Questionnaire & Prompts
+- [ ] Default question sets (360° life review, career, personal projects)
+- [ ] Custom question editor and session scheduler
+
+## Phase 3: Storage & Backups
+- [ ] Local storage management (IndexedDB / File System Access API)
+- [ ] Plug-and-play cloud backup adapters (S3, WebDAV, etc.)
