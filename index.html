@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoLog - Time Capsule</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Update Notification Banner -->
+    <div id="update-banner" class="hidden bg-blue-600 text-white px-4 py-2 text-center text-sm flex justify-between items-center">
+        <span>A new version of VideoLog is available!</span>
+        <button id="reload-btn" class="bg-white text-blue-600 px-3 py-1 rounded font-semibold text-xs shadow hover:bg-blue-50">Update Now</button>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-2">
+            <span class="text-2xl">⏳</span>
+            <h1 class="text-xl font-bold tracking-tight">VideoLog</h1>
+        </div>
+        <div class="text-xs text-slate-400 font-mono">v1.0.0</div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 pb-20">
+        <!-- Dashboard View -->
+        <section id="view-dashboard" class="space-y-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg">
+                <h2 class="text-lg font-semibold mb-2">Your Time Capsule</h2>
+                <p class="text-sm text-slate-400 mb-4">Capture your mindset, situation, and point of view every 6 months. Answer recurring questions to easily review your personal evolution over time.</p>
+                <button id="start-session-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2">
+                    <i data-lucide="video" class="w-5 h-5"></i>
+                    <span>Start Recording Session</span>
+                </button>
+            </div>
+
+            <!-- Past Logs -->
+            <div class="space-y-3">
+                <h3 class="text-md font-semibold text-slate-300">Recorded Sessions</h3>
+                <div id="logs-container" class="space-y-2">
+                    <!-- Dynamically populated -->
+                    <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 text-center text-slate-400 text-sm">
+                        No videologs recorded yet. Start your first session above!
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recorder View (Hidden by default) -->
+        <section id="view-recorder" class="hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <button id="cancel-recorder-btn" class="text-sm text-slate-400 hover:text-white flex items-center space-x-1">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Back to Dashboard</span>
+                </button>
+                <div id="question-counter" class="text-sm font-mono text-blue-400">Question 1 of 5</div>
+            </div>
+
+            <!-- Teleprompter / Question Box -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 max-h-40 overflow-y-auto">
+                <span class="text-xs uppercase tracking-wider text-blue-400 font-semibold block mb-1">Current Question</span>
+                <h3 id="current-question-text" class="text-lg font-medium text-white">Loading question...</h3>
+            </div>
+
+            <!-- Video Preview & Recorder Container -->
+            <div class="relative bg-black rounded-2xl overflow-hidden aspect-[9/16] shadow-2xl border border-slate-700 flex items-center justify-center">
+                <video id="camera-preview" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
+                
+                <!-- Timer Overlay -->
+                <div id="timer-overlay" class="hidden absolute top-4 left-4 bg-black/60 backdrop-blur text-white px-3 py-1 rounded-full text-sm font-mono flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+                    <span id="timer-display">00:00</span> / <span id="timer-max">05:00</span>
+                </div>
+
+                <!-- Start / Stop Recording Buttons -->
+                <div class="absolute bottom-6 left-0 right-0 flex justify-center space-x-4 px-4">
+                    <button id="record-btn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-4 px-8 rounded-full shadow-lg flex items-center space-x-2 transition transform active:scale-95">
+                        <i data-lucide="disc" class="w-6 h-6"></i>
+                        <span>Record Answer</span>
+                    </button>
+                    <button id="stop-btn" class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-8 rounded-full shadow-lg flex items-center space-x-2 transition">
+                        <i data-lucide="square" class="w-6 h-6"></i>
+                        <span>Finish & Save</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings / Packs View -->
+        <section id="view-settings" class="hidden space-y-6">
+            <h2 class="text-lg font-semibold">Question Packs & Settings</h2>
+            <!-- Configuration UI -->
+        </section>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 py-3 px-6 flex justify-around items-center shadow-lg">
+        <button id="nav-dashboard" class="flex flex-col items-center text-blue-400 space-y-1">
+            <i data-lucide="home" class="w-5 h-5"></i>
+            <span class="text-xs">Dashboard</span>
+        </button>
+        <button id="nav-settings" class="flex flex-col items-center text-slate-400 hover:text-white space-y-1">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span class="text-xs">Settings</span>
+        </button>
+    </nav>
+
+    <!-- Core Scripts -->
+    <script type="module" src="src/js/app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
