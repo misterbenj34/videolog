@@ -27,21 +27,26 @@ class App {
                     const newWorker = reg.installing;
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            document.getElementById('update-banner').classList.remove('hidden');
+                            document.getElementById('update-modal').classList.remove('hidden');
                         }
                     });
                 });
             });
         }
 
-        document.getElementById('reload-btn').addEventListener('click', () => {
+        document.getElementById('refresh-app-btn').addEventListener('click', () => {
             window.location.reload();
+        });
+
+        document.getElementById('dismiss-update-btn').addEventListener('click', () => {
+            document.getElementById('update-modal').classList.add('hidden');
         });
     }
 
     initListeners() {
         document.getElementById('start-session-btn').addEventListener('click', () => this.startSession());
         document.getElementById('cancel-recorder-btn').addEventListener('click', () => this.stopCameraAndReturn());
+        
         document.getElementById('nav-dashboard').addEventListener('click', () => this.switchView('dashboard'));
         document.getElementById('nav-settings').addEventListener('click', () => this.switchView('settings'));
 
@@ -54,7 +59,6 @@ class App {
         this.activePackKey = await StorageManager.getSetting('active_pack', 'adult');
         this.username = await StorageManager.getSetting('username', 'Benjamin');
         
-        // Load custom questions if saved, otherwise load default pack questions
         const savedPacks = await StorageManager.getSetting('custom_packs', null);
         if (savedPacks && savedPacks[this.activePackKey]) {
             this.questions = savedPacks[this.activePackKey].questions;
@@ -72,12 +76,23 @@ class App {
         document.getElementById('view-recorder').classList.add('hidden');
         document.getElementById('view-settings').classList.add('hidden');
 
+        // Update Bottom Nav Colors
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            const target = btn.getAttribute('data-target');
+            if (target === viewName) {
+                btn.classList.remove('text-slate-400');
+                btn.classList.add('text-blue-400');
+            } else {
+                btn.classList.remove('text-blue-400');
+                btn.classList.add('text-slate-400');
+            }
+        });
+
         if (viewName === 'dashboard') {
             document.getElementById('view-dashboard').classList.remove('hidden');
             this.renderDashboard();
         } else if (viewName === 'recorder') {
             document.getElementById('view-recorder').classList.remove('hidden');
-            // Re-trigger lucide icons for recorder view
             lucide.createIcons();
         } else if (viewName === 'settings') {
             document.getElementById('view-settings').classList.remove('hidden');
@@ -122,7 +137,6 @@ class App {
 
         this.renderQuestionsEditor();
 
-        // Listeners for settings inputs
         document.getElementById('username-input').onchange = async (e) => {
             this.username = e.target.value.trim() || 'User';
             document.getElementById('header-username').textContent = this.username;
@@ -332,7 +346,7 @@ class App {
     }
 }
 
-// Global helpers for inline HTML callbacks
+// Global helpers for inline HTML callbacks & video replay
 window.updateQuestionProp = function(idx, prop, value) {
     if (window.app && window.app.questions[window.app.questions.length > idx ? idx : 0]) {
         window.app.questions[idx][prop] = value;
@@ -352,18 +366,25 @@ window.removeQuestion = function(idx) {
 window.playVideo = async function(id) {
     const recordings = await StorageManager.getAllRecordings();
     const rec = recordings.find(r => r.id === id);
-    if (!rec) return;
+    if (!rec || !rec.blob) {
+        alert('Video blob not found.');
+        return;
+    }
 
     const url = URL.createObjectURL(rec.blob);
     const win = window.open();
+    if (!win) {
+        alert('Popup blocked! Please allow popups to view the video playback.');
+        return;
+    }
     win.document.write(`
         <html>
         <head><title>VideoLog Playback</title></head>
         <body style="background:#0f172a; color:#fff; font-family:sans-serif; text-align:center; padding:20px;">
-            <p style="color:#60a5fa; font-size:12px; text-transform:uppercase;">${rec.category}</p>
-            <h3>${rec.questionText}</h3>
+            <p style="color:#60a5fa; font-size:12px; text-transform:uppercase; margin-bottom:4px;">${rec.category}</p>
+            <h3 style="margin-top:0;">${rec.questionText}</h3>
             <p style="font-size:12px; color:#94a3b8;">${new Date(rec.timestamp).toLocaleString()}</p>
-            <video controls autoplay style="max-width:100%; max-height:75vh; border-radius:12px; margin-top:10px;"><source src="${url}" type="${rec.mimeType}"></video>
+            <video controls autoplay style="max-width:100%; max-height:75vh; border-radius:12px; margin-top:10px;"><source src="${url}" type="${rec.mimeType || 'video/webm'}"></video>
         </body>
         </html>
     `);
