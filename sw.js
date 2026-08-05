@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videolog-v1';
+const CACHE_NAME = 'videolog-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -6,7 +6,6 @@ const ASSETS_TO_CACHE = [
     './src/js/app.js',
     './src/js/storage.js',
     './src/js/packs.js',
-    './src/js/recorder.js',
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/lucide@latest'
 ];
@@ -35,21 +34,27 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+});
+
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                // Fetch new version in background
-                fetch(event.request).then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(event.request, networkResponse);
-                        });
-                    }
-                }).catch(() => {});
-                return cachedResponse;
-            }
-            return fetch(event.request);
+            const fetchPromise = fetch(event.request).then((networkResponse) => {
+                if (networkResponse && networkResponse.status === 200) {
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, networkResponse.clone());
+                    });
+                }
+                return networkResponse;
+            }).catch(() => {
+                // Ignore network errors if offline
+            });
+
+            return cachedResponse || fetchPromise;
         })
     );
 });

@@ -23,24 +23,39 @@ class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then((reg) => {
+                // If there's already a waiting worker upon load
+                if (reg.waiting) {
+                    this.showUpdateModal(reg.waiting);
+                }
+
                 reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            document.getElementById('update-modal').classList.remove('hidden');
+                            this.showUpdateModal(newWorker);
                         }
                     });
                 });
             });
+
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
         }
+    }
 
-        document.getElementById('refresh-app-btn').addEventListener('click', () => {
-            window.location.reload();
-        });
-
-        document.getElementById('dismiss-update-btn').addEventListener('click', () => {
+    showUpdateModal(worker) {
+        document.getElementById('update-modal').classList.remove('hidden');
+        document.getElementById('refresh-app-btn').onclick = () => {
+            worker.postMessage({ type: 'SKIP_WAITING' });
+        };
+        document.getElementById('dismiss-update-btn').onclick = () => {
             document.getElementById('update-modal').classList.add('hidden');
-        });
+        };
     }
 
     initListeners() {
