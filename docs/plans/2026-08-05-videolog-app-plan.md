@@ -6,14 +6,14 @@
 
 **Architecture:** 
 - **Frontend-Only Architecture:** Vanilla JavaScript (ES modules) + Tailwind CSS via CDN + Lucide icons. Zero backend / zero server storage for absolute data privacy.
-- **Storage:** Browser `IndexedDB` (via idb-keyval or native wrapper) for storing video blobs, recording metadata, and questionnaire settings locally.
-- **Media Pipeline:** MediaRecorder API (`video/mp4` where supported or standard container with local transcoding/download), 5-minute hard/soft timer limit, live front-camera preview.
+- **Storage:** Browser `IndexedDB` (using native Promises or `idb-keyval` wrapper) for storing video blobs, recording metadata, and questionnaire settings locally. Includes `navigator.storage.persist()` check and JSON backup/restore.
+- **Media Pipeline:** MediaRecorder API with dynamic MIME type feature detection (`video/mp4;codecs=avc1,mp4a.40.2` for iOS Safari vs `video/webm;codecs=vp9,opus` for Chrome/Android), 5-minute hard/soft timer limit, live front-camera preview.
 - **Hosting:** GitHub Pages static deployment.
 
 **Tech Stack:**
 - HTML5 / CSS3 / Tailwind CSS (Styling)
 - JavaScript (ES6+ / Modules)
-- IndexedDB (Local video and state persistence)
+- IndexedDB (Local video blobs & JSON metadata persistence)
 - Web Share API / ICS file generator (Reminders)
 
 ---
@@ -26,7 +26,7 @@
 - Create: `src/js/app.js` (Main router / state manager)
 
 ### Task 2: Implement IndexedDB Local Storage layer
-- Create: `src/js/storage.js` (Wrapper for managing video recordings, metadata, and custom question packs in IndexedDB)
+- Create: `src/js/storage.js` (Wrapper for managing video recordings, metadata, and custom question packs in IndexedDB, with storage persistence request and backup/restore export features)
 
 ---
 
@@ -44,7 +44,7 @@
 ## Phase 3: Mobile Camera & Video Recorder
 
 ### Task 5: Mobile Front Camera & MediaRecorder Integration
-- Create: `src/js/recorder.js` (Camera permission check, front-camera stream attachment, 5-minute timer, MediaRecorder recording handling)
+- Create: `src/js/recorder.js` (Camera permission check, front-camera stream attachment with proper resolution constraints, MIME type detection for iOS/Android, 5-minute timer, MediaRecorder streaming handling)
 
 ### Task 6: Interactive Teleprompter / Question Viewer during Recording
 - Modify: `src/js/recorder.js` (Scrollable question list overlay on the live camera view so the user can read questions while recording)
@@ -54,7 +54,7 @@
 ## Phase 4: Polish, Testing & Deployment
 
 ### Task 7: Local Export & Playback
-- Modify: `src/js/app.js` (Download recorded video as MP4, delete local logs, backup/restore local JSON metadata)
+- Modify: `src/js/app.js` (Download recorded video directly to camera roll/downloads as MP4/WebM, delete local logs, backup/restore local JSON metadata)
 
 ### Task 8: GitHub Pages Deployment Workflow
 - Create: `.github/workflows/deploy.yml` (GitHub Action to deploy static files to GitHub Pages)
