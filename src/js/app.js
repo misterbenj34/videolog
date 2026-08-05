@@ -16,6 +16,7 @@ class App {
         this.secondsElapsed = 0;
         this.maxSeconds = 300; // 5 minutes
         this.deferredPrompt = null;
+        this.newWorker = null;
 
         this.initPWA();
         this.initListeners();
@@ -25,21 +26,27 @@ class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then((reg) => {
+                // Check for updates on load & every 30 mins
                 reg.update();
-                setInterval(() => { reg.update(); }, 60 * 60 * 1000);
+                setInterval(() => { reg.update(); }, 30 * 60 * 1000);
 
-                if (reg.waiting) {
-                    this.showUpdateModal(reg.waiting);
-                }
-
-                reg.addEventListener('updatefound', () => {
-                    const newWorker = reg.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            this.showUpdateModal(newWorker);
+                const handleUpdateFound = () => {
+                    const installingWorker = reg.installing;
+                    if (!installingWorker) return;
+                    installingWorker.addEventListener('statechange', () => {
+                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            this.newWorker = installingWorker;
+                            this.showUpdateModal();
                         }
                     });
-                });
+                };
+
+                if (reg.waiting && navigator.serviceWorker.controller) {
+                    this.newWorker = reg.waiting;
+                    this.showUpdateModal();
+                }
+
+                reg.addEventListener('updatefound', handleUpdateFound);
             });
 
             let refreshing = false;
@@ -52,8 +59,8 @@ class App {
         }
 
         document.getElementById('refresh-app-btn').addEventListener('click', () => {
-            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+            if (this.newWorker) {
+                this.newWorker.postMessage({ type: 'SKIP_WAITING' });
             } else {
                 window.location.reload();
             }
@@ -92,11 +99,8 @@ class App {
         });
     }
 
-    showUpdateModal(worker) {
+    showUpdateModal() {
         document.getElementById('update-modal').classList.remove('hidden');
-        document.getElementById('refresh-app-btn').onclick = () => {
-            worker.postMessage({ type: 'SKIP_WAITING' });
-        };
     }
 
     initListeners() {
@@ -471,7 +475,7 @@ class App {
         // 1. Save to IndexedDB
         await StorageManager.saveRecording(recordingObj);
 
-        // 2. Automatically download locally formatted as: Videolog - Username - Question category - YYYYMMDD
+        // 2. Automatically download locally formatted as: Videolog/Username/Category/YYYYMMDD
         const now = new Date();
         const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '');
         const cleanUsername = this.username.replace(/[^a-zA-Z0-9-_]/g, '_');
@@ -539,13 +543,6 @@ window.updateQuestionProp = function(idx, prop, value) {
         window.app.questions[idx][prop] = value;
         window.app.saveAndRenderQuestions();
     }
-};
-
-window.removeQuestion = function(idx) {
-    if (window.app && window.app.questions.length > 1) {
-        window.app.questions.splice(idx, 1);
-        window.app.saveAndRenderQuestions();
-    } href = "javascript:void(0)"
 };
 
 window.removeQuestion = function(idx) {
