@@ -26,27 +26,21 @@ class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then((reg) => {
-                // Check for updates on load & every 30 mins
                 reg.update();
                 setInterval(() => { reg.update(); }, 30 * 60 * 1000);
 
-                const handleUpdateFound = () => {
-                    const installingWorker = reg.installing;
-                    if (!installingWorker) return;
-                    installingWorker.addEventListener('statechange', () => {
-                        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            this.newWorker = installingWorker;
-                            this.showUpdateModal();
-                        }
-                    });
-                };
-
-                if (reg.waiting && navigator.serviceWorker.controller) {
-                    this.newWorker = reg.waiting;
-                    this.showUpdateModal();
+                if (reg.waiting) {
+                    this.showUpdateModal(reg.waiting);
                 }
 
-                reg.addEventListener('updatefound', handleUpdateFound);
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            this.showUpdateModal(newWorker);
+                        }
+                    });
+                });
             });
 
             let refreshing = false;
@@ -127,38 +121,45 @@ class App {
             let count = 0;
             const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
 
-            for await (const entry of dirHandle.values()) {
-                if (entry.kind === 'file' && entry.name.startsWith('Videolog -') && (entry.name.endsWith('.mp4') || entry.name.endsWith('.webm'))) {
-                    const file = await entry.getFile();
-                    
-                    const parts = entry.name.replace(/\.[^/.]+$/, "").split(' - ');
-                    const category = parts.length >= 3 ? parts[2] : 'General';
-                    const timestampStr = parts.length >= 4 ? parts[3] : new Date().toISOString().slice(0,10);
-                    
-                    let isoDate = new Date().toISOString();
-                    if (timestampStr.length === 8) {
-                        const y = timestampStr.slice(0,4);
-                        const m = timestampStr.slice(4,6);
-                        const d = timestampStr.slice(6,8);
-                        isoDate = new Date(`${y}-${m}-${d}`).toISOString();
+            // Recursive helper to find files in subdirectories (Videolog/Username/Category/)
+            async function scanDir(handle) {
+                for await (const entry of handle.values()) {
+                    if (entry.kind === 'file' && entry.name.startsWith('Videolog -') && (entry.name.endsWith('.mp4') || entry.name.endsWith('.webm'))) {
+                        const file = await entry.getFile();
+                        
+                        const parts = entry.name.replace(/\.[^/.]+$/, "").split(' - ');
+                        const category = parts.length >= 3 ? parts[2] : 'General';
+                        const timestampStr = parts.length >= 4 ? parts[3] : new Date().toISOString().slice(0,10);
+                        
+                        let isoDate = new Date().toISOString();
+                        if (timestampStr.length === 8) {
+                            const y = timestampStr.slice(0,4);
+                            const m = timestampStr.slice(4,6);
+                            const d = timestampStr.slice(6,8);
+                            isoDate = new Date(`${y}-${m}-${d}`).toISOString();
+                        }
+
+                        const recordingObj = {
+                            id: 'imported_' + Date.now + '_' + Math.random().toString(36).substr(2, 5),
+                            timestamp: isoDate,
+                            questionId: 'imported',
+                            questionText: entry.name,
+                            category: category,
+                            packKey: 'imported',
+                            blob: file,
+                            duration: 0,
+                            mimeType: file.type || 'video/mp4'
+                        };
+
+                        await StorageManager.saveRecording(recordingObj);
+                        count++;
+                    } else if (entry.kind === 'directory') {
+                        await scanDir(entry);
                     }
-
-                    const recordingObj = {
-                        id: 'imported_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-                        timestamp: isoDate,
-                        questionId: 'imported',
-                        questionText: entry.name,
-                        category: category,
-                        packKey: this.activePackKey,
-                        blob: file,
-                        duration: 0,
-                        mimeType: file.type || 'video/mp4'
-                    };
-
-                    await StorageManager.saveRecording(recordingObj);
-                    count++;
                 }
             }
+
+            await scanDir(dirHandle);
 
             if (count > 0) {
                 alert(`${count} ${dict.importedCount}`);
@@ -428,7 +429,7 @@ class App {
         this.mediaRecorder.start();
         document.getElementById('record-btn').classList.add('hidden');
         document.getElementById('stop-btn').classList.remove('hidden');
-        document.getElementById('timer-overlay').classList.remove('hidden');
+        document.getElementById('timer-overlay').classList.add('hidden');
 
         this.secondsElapsed = 0;
         this.updateTimerDisplay();
@@ -475,7 +476,7 @@ class App {
         // 1. Save to IndexedDB
         await StorageManager.saveRecording(recordingObj);
 
-        // 2. Automatically download locally formatted as: Videolog/Username/Category/YYYYMMDD
+        // 2. Automatically download locally
         const now = new Date();
         const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '');
         const cleanUsername = this.username.replace(/[^a-zA-Z0-9-_]/g, '_');
@@ -485,10 +486,35 @@ class App {
         const a = document.createElement('a');
         a.href = url;
         const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-        a.download = `Videolog/${cleanUsername}/${cleanCategory}/${yyyymmdd}.${ext}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        
+        // Use File System Access API if supported for true folder picking, otherwise fallback to standard download
+        if (window.showDirectoryPicker) {
+            try {
+                alert('Please select your "Videolog" folder to save this recording.');
+                const dirHandle = await window.showDirectoryPicker();
+                
+                // Create subfolders: Username -> Category
+                const userDir = await dirHandle.getDirectoryHandle(cleanUsername, { create: true });
+                const catDir = await userDir.getDirectoryHandle(cleanCategory, { create: true });
+                const fileHandle = await catDir.getFileHandle(`${yyyymmdd}.${ext}`, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error('Error writing to folder, falling back to standard download:', err);
+                    a.download = `Videolog - ${cleanUsername} - ${cleanCategory} - ${yyyymmdd}.${ext}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+            }
+        } else {
+            a.download = `Videolog - ${cleanUsername} - ${cleanCategory} - ${yyyymmdd}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
 
         // Advance to next question or finish session
         this.currentQuestionIndex++;

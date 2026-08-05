@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videolog-v9';
+const CACHE_NAME = 'videolog-v11';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
