@@ -23,9 +23,16 @@ class App {
     }
 
     initPWA() {
-        // Service Worker registration & updates
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then((reg) => {
+                // Check for updates immediately on load
+                reg.update();
+
+                // Periodic check for updates every 60 minutes while app is open
+                setInterval(() => {
+                    reg.update();
+                }, 60 * 60 * 1000);
+
                 if (reg.waiting) {
                     this.showUpdateModal(reg.waiting);
                 }
@@ -69,7 +76,6 @@ class App {
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             this.deferredPrompt = e;
-            // Show install modal if not already installed / dismissed this session
             if (!sessionStorage.getItem('install_prompt_dismissed')) {
                 document.getElementById('install-modal').classList.remove('hidden');
             }
@@ -228,7 +234,6 @@ class App {
             await StorageManager.setSetting('language', this.currentLang);
             this.applyTranslations();
             
-            // Reload default pack questions in new language if no custom edits
             const savedPacks = await StorageManager.getSetting('custom_packs', null);
             if (!savedPacks || !savedPacks[this.activePackKey]) {
                 this.questions = this.loadQuestionsForAppLang();
@@ -364,7 +369,7 @@ class App {
         this.mediaRecorder.start();
         document.getElementById('record-btn').classList.add('hidden');
         document.getElementById('stop-btn').classList.remove('hidden');
-        document.getElementById('timer-overlay').classList.remove('hidden');
+        document.getElementById('timer-overlay').classList.add('hidden');
 
         this.secondsElapsed = 0;
         this.updateTimerDisplay();

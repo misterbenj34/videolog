@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videolog-v5';
+const CACHE_NAME = 'videolog-v6';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -40,7 +40,27 @@ self.addEventListener('message', (event) => {
     }
 });
 
+// Network-first strategy for index.html / navigation, fallback to cache
+// Stale-while-revalidate for JS/CSS assets to ensure background updates
 self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
+
+    if (event.request.mode === 'navigate' || url.pathname.endsWith('index.html') || url.pathname.endsWith('/')) {
+        event.respondWith(
+            fetch(event.request)
+                .then((networkResponse) => {
+                    return caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                })
+                .catch(() => {
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
             const fetchPromise = fetch(event.request).then((networkResponse) => {
