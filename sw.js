@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videolog-v6';
+const CACHE_NAME = 'videolog-v8';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -40,8 +40,6 @@ self.addEventListener('message', (event) => {
     }
 });
 
-// Network-first strategy for index.html / navigation, fallback to cache
-// Stale-while-revalidate for JS/CSS assets to ensure background updates
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 

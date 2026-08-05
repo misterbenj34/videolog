@@ -101,7 +101,7 @@ class App {
 
     initListeners() {
         document.getElementById('start-session-btn').addEventListener('click', () => this.startSession());
-        document.getElementById('scan-folder-btn').addEventListener('click', () => this.scanDownloadsFolder());
+        document.getElementById('scan-folder-btn').addEventListener('click', () => this.scanVideologFolder());
         document.getElementById('cancel-recorder-btn').addEventListener('click', () => this.stopCameraAndReturn());
         
         document.getElementById('nav-dashboard').addEventListener('click', () => this.switchView('dashboard'));
@@ -111,13 +111,14 @@ class App {
         document.getElementById('stop-btn').addEventListener('click', () => this.stopRecording());
     }
 
-    async scanDownloadsFolder() {
+    async scanVideologFolder() {
         if (!window.showDirectoryPicker) {
             alert('File System Access API is not supported on this browser (try Chrome, Edge, or Desktop PWA).');
             return;
         }
 
         try {
+            alert('Please select your "Videolog" folder to scan for existing recordings.');
             const dirHandle = await window.showDirectoryPicker();
             let count = 0;
             const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
@@ -126,12 +127,10 @@ class App {
                 if (entry.kind === 'file' && entry.name.startsWith('Videolog -') && (entry.name.endsWith('.mp4') || entry.name.endsWith('.webm'))) {
                     const file = await entry.getFile();
                     
-                    // Parse filename: Videolog - Username - Category - YYYYMMDD.mp4
                     const parts = entry.name.replace(/\.[^/.]+$/, "").split(' - ');
                     const category = parts.length >= 3 ? parts[2] : 'General';
                     const timestampStr = parts.length >= 4 ? parts[3] : new Date().toISOString().slice(0,10);
                     
-                    // Convert YYYYMMDD to ISO date
                     let isoDate = new Date().toISOString();
                     if (timestampStr.length === 8) {
                         const y = timestampStr.slice(0,4);
@@ -161,7 +160,7 @@ class App {
                 alert(`${count} ${dict.importedCount}`);
                 this.renderDashboard();
             } else {
-                alert('No matching Videolog files found in the selected folder.');
+                alert('No matching Videolog files found in this folder.');
             }
         } catch (err) {
             if (err.name !== 'AbortError') {
@@ -482,7 +481,7 @@ class App {
         const a = document.createElement('a');
         a.href = url;
         const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-        a.download = `Videolog - ${cleanUsername} - ${cleanCategory} - ${yyyymmdd}.${ext}`;
+        a.download = `Videolog/${cleanUsername}/${cleanCategory}/${yyyymmdd}.${ext}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -540,6 +539,13 @@ window.updateQuestionProp = function(idx, prop, value) {
         window.app.questions[idx][prop] = value;
         window.app.saveAndRenderQuestions();
     }
+};
+
+window.removeQuestion = function(idx) {
+    if (window.app && window.app.questions.length > 1) {
+        window.app.questions.splice(idx, 1);
+        window.app.saveAndRenderQuestions();
+    } href = "javascript:void(0)"
 };
 
 window.removeQuestion = function(idx) {
