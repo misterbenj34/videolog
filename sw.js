@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videolog-v17';
+const CACHE_NAME = 'videolog-v18';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -6,6 +6,7 @@ const ASSETS_TO_CACHE = [
     './src/js/app.js',
     './src/js/storage.js',
     './src/js/packs.js',
+    './src/js/browser.js',
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/lucide@latest'
 ];
@@ -63,7 +64,7 @@ self.addEventListener('fetch', (event) => {
             const fetchPromise = fetch(event.request).then((networkResponse) => {
                 if (networkResponse && networkResponse.status === 200) {
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, networkResponse.clone().clone());
+                        cache.put(event.request, networkResponse.clone());
                     });
                 }
                 return networkResponse;

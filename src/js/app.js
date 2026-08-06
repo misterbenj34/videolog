@@ -1,5 +1,6 @@
 import { StorageManager } from './storage.js';
 import { QUESTION_PACKS, TRANSLATIONS } from './packs.js';
+import { BrowserBridge } from './browser.js';
 
 class App {
     constructor() {
@@ -114,8 +115,8 @@ class App {
     }
 
     async scanVideologFolder() {
-        if (!window.showDirectoryPicker) {
-            alert('File System Access API is not supported in this browser. You can play and review all your recordings directly from the Dashboard storage.');
+        if (!BrowserBridge.supportsFileSystemAccess()) {
+            alert('File System Access API is not supported in this browser (' + BrowserBridge.getBrowserType() + '). You can review recordings from Dashboard storage.');
             return;
         }
 
@@ -403,10 +404,13 @@ class App {
                         this.canvas.height = videoEl.videoHeight || 720;
                     }
 
-                    // 1. Draw video frame
-                    this.ctx.drawImage(videoEl, 0, 0, this.canvas.width, this.canvas.height);
+                    // 1. Draw video frame (Note: canvas CSS handles horizontal mirroring, but raw frame drawing draws unmirrored or mirrored depending on preference. Here we draw normally to keep text readable).
+                    this.ctx.save();
+                    this.ctx.scale(-1, 1);
+                    this.ctx.drawImage(videoEl, -this.canvas.width, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.restore();
 
-                    // 2. Draw clean telemetry overlay layer
+                    // 2. Draw telemetry overlay layer
                     this.drawTelemetryOverlay();
                 }
                 this.canvasAnimationId = requestAnimationFrame(renderOverlay);
@@ -457,7 +461,7 @@ class App {
         ctx.font = 'bold 18px monospace';
         ctx.fillText('REC', w - 95, 69);
 
-        // 3. Bottom Bar: Username, Date/Time & Category (No full question)
+        // 3. Bottom Bar: Username, Date/Time & Category
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.fillRect(40, h - 90, w - 80, 55);
         ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
@@ -569,35 +573,13 @@ class App {
         const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
         const fileName = `Videolog - ${cleanUsername} - ${cleanCategory} - ${yyyymmdd}.${ext}`;
 
-        if (window.showDirectoryPicker) {
+        await BrowserBridge.saveFile(blob, fileName, async () => {
             if (!this.dirHandle) {
-                try {
-                    alert('Please select your "Videolog" folder once. The app will remember it for future recordings.');
-                    this.dirHandle = await window.showDirectoryPicker();
-                } catch (err) {
-                    console.log('Directory picker cancelled');
-                }
+                alert('Please select your "Videolog" folder once. The app will remember it for future recordings.');
+                this.dirHandle = await window.showDirectoryPicker();
             }
-
-            if (this.dirHandle) {
-                try {
-                    if ((await this.dirHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
-                        await this.dirHandle.requestPermission({ mode: 'readwrite' });
-                    }
-                    const fileHandle = await this.dirHandle.getFileHandle(fileName, { create: true });
-                    const writable = await fileHandle.createWritable();
-                    await writable.write(blob);
-                    await writable.close();
-                } catch (err) {
-                    console.error('Error writing to cached directory handle, falling back to download:', err);
-                    this.fallbackDownload(blob, fileName);
-                }
-            } else {
-                this.fallbackDownload(blob, fileName);
-            }
-        } else {
-            this.fallbackDownload(blob, fileName);
-        }
+            return this.dirHandle;
+        });
 
         this.currentQuestionIndex++;
         if (this.currentQuestionIndex < this.questions.length) {
@@ -606,16 +588,6 @@ class App {
             alert(dict.sessionComplete);
             this.stopCameraAndReturn();
         }
-    }
-
-    fallbackDownload(blob, fileName) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
     }
 
     stopCameraAndReturn() {
