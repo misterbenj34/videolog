@@ -391,7 +391,6 @@ class App {
             const videoEl = document.getElementById('camera-preview');
             videoEl.srcObject = this.mediaStream;
 
-            // Setup Canvas rendering loop with telemetry overlay
             this.canvas = document.getElementById('recorder-canvas');
             this.ctx = this.canvas.getContext('2d');
 
@@ -407,7 +406,7 @@ class App {
                     // 1. Draw video frame
                     this.ctx.drawImage(videoEl, 0, 0, this.canvas.width, this.canvas.height);
 
-                    // 2. Draw telemetry overlay layer
+                    // 2. Draw clean telemetry overlay layer
                     this.drawTelemetryOverlay();
                 }
                 this.canvasAnimationId = requestAnimationFrame(renderOverlay);
@@ -434,54 +433,46 @@ class App {
         const user = (this.username || 'BENJAMIN').toUpperCase();
 
         ctx.save();
-        ctx.font = 'bold 22px monospace';
-        ctx.fillStyle = 'rgba(59, 130, 246, 0.9)'; // Blue accent
 
-        // Top Left: Logo / Title badge
+        // 1. Top Left: Logo / Title badge
+        ctx.font = 'bold 22px monospace';
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.9)';
         ctx.fillRect(40, 40, 180, 45);
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 20px sans-serif';
         ctx.fillText('⏳ VIDEOLOG', 55, 70);
 
-        // Top Right: Date & Time + User
-        ctx.font = 'bold 18px monospace';
+        // 2. Top Right: Pulsing REC Indicator
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(w - 450, 40, 410, 85);
-        
-        ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+        ctx.fillRect(w - 140, 40, 100, 45);
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
         ctx.lineWidth = 2;
-        ctx.strokeRect(w - 450, 40, 410, 85);
+        ctx.strokeRect(w - 140, 40, 100, 45);
 
-        ctx.fillStyle = '#60a5fa';
-        ctx.fillText(`USER: ${user}`, w - 430, 70);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(`TIME: ${dateStr}`, w - 430, 100);
-
-        // Bottom Left: Category & Question Info
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(40, h - 110, w - 80, 70);
-        ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
-        ctx.strokeRect(40, h - 110, w - 80, 70);
-
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = 'bold 16px sans-serif';
-        ctx.fillText(`CATEGORY: ${cat}`, 60, h - 75);
-
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = '16px sans-serif';
-        // Truncate question if too long
-        let qText = q.text || '';
-        if (qText.length > 75) qText = qText.slice(0, 72) + '...';
-        ctx.fillText(`Q: ${qText}`, 60, h - 45);
-
-        // Top Center: REC Indicator
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+        ctx.fillStyle = '#ef4444';
         ctx.beginPath();
-        ctx.arc(w / 2 - 40, 62, 10, 0, Math.PI * 2);
+        ctx.arc(w - 115, 62, 7, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 20px monospace';
-        ctx.fillText('REC', w / 2 - 20, 70);
+        ctx.font = 'bold 18px monospace';
+        ctx.fillText('REC', w - 95, 69);
+
+        // 3. Bottom Bar: Username, Date/Time & Category (No full question)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(40, h - 90, w - 80, 55);
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(40, h - 90, w - 80, 55);
+
+        ctx.font = 'bold 16px monospace';
+        ctx.fillStyle = '#60a5fa';
+        ctx.fillText(`USER: ${user}`, 60, h - 55);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText(`•   ${dateStr}`, 240, h - 55);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText(`CATEGORY: ${cat}`, 60, h - 25);
 
         ctx.restore();
     }
@@ -499,10 +490,7 @@ class App {
     startRecording() {
         this.recordedChunks = [];
         
-        // Capture stream from the canvas which contains the video + telemetry overlay layer!
-        const canvasStream = this.canvas.captureStream(30); // 30 FPS
-        
-        // Also add audio track from the mediaStream
+        const canvasStream = this.canvas.captureStream(30);
         const audioTracks = this.mediaStream.getAudioTracks();
         if (audioTracks.length > 0) {
             canvasStream.addTrack(audioTracks[0]);
@@ -680,7 +668,7 @@ window.removeQuestion = function(idx) {
         window.app.questions.splice(idx, 1);
         window.app.saveAndRenderQuestions();
     } else {
-        alert('You must keep at sleek least one question in the pack.');
+        alert('You must keep at least one question in the pack.');
     }
 };
 

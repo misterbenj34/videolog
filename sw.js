@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videolog-v16';
+const CACHE_NAME = 'videolog-v17';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -63,7 +63,7 @@ self.addEventListener('fetch', (event) => {
             const fetchPromise = fetch(event.request).then((networkResponse) => {
                 if (networkResponse && networkResponse.status === 200) {
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, networkResponse.clone());
+                        cache.put(event.request, networkResponse.clone().clone());
                     });
                 }
                 return networkResponse;
