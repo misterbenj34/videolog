@@ -17,7 +17,7 @@ class App {
         this.secondsElapsed = 0;
         this.maxSeconds = 300; // 5 minutes
         this.deferredPrompt = null;
-        this.newWorker = null;
+        this.registration = null;
         this.dirHandle = null;
 
         // Canvas overlay rendering properties
@@ -33,23 +33,34 @@ class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then((reg) => {
-                reg.update();
-                setInterval(() => { reg.update(); }, 30 * 60 * 1000);
+                this.registration = reg;
 
+                // Check for updates immediately and every 15 minutes
+                reg.update();
+                setInterval(() => { reg.update(); }, 15 * 60 * 1000);
+
+                // Check if a waiting worker already exists on load
                 if (reg.waiting) {
                     this.showUpdateModal(reg.waiting);
                 }
 
+                // Listen for new service worker installing
                 reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            this.showUpdateModal(newWorker);
-                        }
-                    });
+                    if (newWorker) {
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed') {
+                                if (navigator.serviceWorker.controller) {
+                                    // New update available!
+                                    this.showUpdateModal(newWorker);
+                                }
+                            }
+                        });
+                    }
                 });
-            });
+            }).catch(err => console.error('SW registration failed:', err));
 
+            // Reload page once the new service worker takes control
             let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (!refreshing) {
@@ -60,8 +71,8 @@ class App {
         }
 
         document.getElementById('refresh-app-btn').addEventListener('click', () => {
-            if (this.newWorker) {
-                this.newWorker.postMessage({ type: 'SKIP_WAITING' });
+            if (this.waitingWorker) {
+                this.waitingWorker.postMessage({ type: 'SKIP_WAITING' });
             } else {
                 window.location.reload();
             }
@@ -98,7 +109,8 @@ class App {
         });
     }
 
-    showUpdateModal() {
+    showUpdateModal(worker) {
+        this.waitingWorker = worker;
         document.getElementById('update-modal').classList.remove('hidden');
     }
 
@@ -404,13 +416,11 @@ class App {
                         this.canvas.height = videoEl.videoHeight || 720;
                     }
 
-                    // 1. Draw video frame (Note: canvas CSS handles horizontal mirroring, but raw frame drawing draws unmirrored or mirrored depending on preference. Here we draw normally to keep text readable).
                     this.ctx.save();
                     this.ctx.scale(-1, 1);
                     this.ctx.drawImage(videoEl, -this.canvas.width, 0, this.canvas.width, this.canvas.height);
                     this.ctx.restore();
 
-                    // 2. Draw telemetry overlay layer
                     this.drawTelemetryOverlay();
                 }
                 this.canvasAnimationId = requestAnimationFrame(renderOverlay);
