@@ -1,4 +1,4 @@
-const CACHE_NAME = 'videolog-v13';
+const CACHE_NAME = 'videolog-v14';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -13,7 +13,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.assets = cache.addAll(ASSETS_TO_CACHE);
+            return cache.addAll(ASSETS_TO_CACHE);
         })
     );
 });
