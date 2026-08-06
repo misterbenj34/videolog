@@ -17,7 +17,7 @@ class App {
         this.maxSeconds = 300; // 5 minutes
         this.deferredPrompt = null;
         this.newWorker = null;
-        this.dirHandle = null; // Cached folder handle
+        this.dirHandle = null; // Cached folder handle for Chromium/Chrome/Edge
 
         this.initPWA();
         this.initListeners();
@@ -112,13 +112,13 @@ class App {
 
     async scanVideologFolder() {
         if (!window.showDirectoryPicker) {
-            alert('File System Access API is not supported on this browser (try Chrome, Edge, or Desktop PWA).');
+            // Firefox / Safari fallback: standard file input or instructions
+            alert('File System Access API is not supported in this browser (e.g. Firefox/Safari). You can play and review all your recordings directly from the Dashboard storage below.');
             return;
         }
 
         try {
             this.dirHandle = await window.showDirectoryPicker();
-            // Verify permission
             if ((await this.dirHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
                 await this.dirHandle.requestPermission({ mode: 'readwrite' });
             }
@@ -474,7 +474,7 @@ class App {
         // 1. Save to IndexedDB
         await StorageManager.saveRecording(recordingObj);
 
-        // 2. Automatically save / download locally using naming convention in root of chosen folder
+        // 2. Save locally based on browser capability (File System Access API for Chromium, standard download for Firefox/Safari)
         const now = new Date();
         const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '');
         const cleanUsername = this.username.replace(/[^a-zA-Z0-9-_]/g, '_');
@@ -483,29 +483,35 @@ class App {
         const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
         const fileName = `Videolog - ${cleanUsername} - ${cleanCategory} - ${yyyymmdd}.${ext}`;
 
-        if (window.showDirectoryPicker && !this.dirHandle) {
-            try {
-                alert('Please select your "Videolog" folder once. The app will remember it for future recordings.');
-                this.dirHandle = await window.showDirectoryPicker();
-            } catch (err) {
-                console.log('Directory picker cancelled');
-            }
-        }
-
-        if (this.dirHandle) {
-            try {
-                if ((await this.dirHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
-                    await this.dirHandle.requestPermission({ mode: 'readwrite' });
+        if (window.showDirectoryPicker) {
+            // Chromium Scenario (Chrome, Edge, Chrome Android / Desktop PWA)
+            if (!this.dirHandle) {
+                try {
+                    alert('Please select your "Videolog" folder once. The app will remember it for future recordings.');
+                    this.dirHandle = await window.showDirectoryPicker();
+                } catch (err) {
+                    console.log('Directory picker cancelled');
                 }
-                const fileHandle = await this.dirHandle.getFileHandle(fileName, { create: true });
-                const writable = await fileHandle.createWritable();
-                await writable.write(blob);
-                await writable.close();
-            } catch (err) {
-                console.error('Error writing to cached directory handle, falling back to download:', err);
+            }
+
+            if (this.dirHandle) {
+                try {
+                    if ((await this.dirHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
+                        await this.dirHandle.requestPermission({ mode: 'readwrite' });
+                    }
+                    const fileHandle = await this.dirHandle.getFileHandle(fileName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                } catch (err) {
+                    console.error('Error writing to cached directory handle, falling back to download:', err);
+                    this.fallbackDownload(blob, fileName);
+                }
+            } else {
                 this.fallbackDownload(blob, fileName);
             }
         } else {
+            // Firefox & Safari Scenario (File System Access API not supported -> automatic standard download)
             this.fallbackDownload(blob, fileName);
         }
 
