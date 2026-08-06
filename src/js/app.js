@@ -17,7 +17,12 @@ class App {
         this.maxSeconds = 300; // 5 minutes
         this.deferredPrompt = null;
         this.newWorker = null;
-        this.dirHandle = null; // Cached folder handle for Chromium/Chrome/Edge
+        this.dirHandle = null;
+
+        // Canvas overlay rendering properties
+        this.canvas = null;
+        this.ctx = null;
+        this.canvasAnimationId = null;
 
         this.initPWA();
         this.initListeners();
@@ -69,7 +74,6 @@ class App {
             this.closeVideoModal();
         });
 
-        // Install PWA Prompt handling
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             this.deferredPrompt = e;
@@ -83,7 +87,6 @@ class App {
             if (this.deferredPrompt) {
                 this.deferredPrompt.prompt();
                 const { outcome } = await this.deferredPrompt.userChoice;
-                console.log(`User response to install prompt: ${outcome}`);
                 this.deferredPrompt = null;
             }
         });
@@ -112,8 +115,7 @@ class App {
 
     async scanVideologFolder() {
         if (!window.showDirectoryPicker) {
-            // Firefox / Safari fallback: standard file input or instructions
-            alert('File System Access API is not supported in this browser (e.g. Firefox/Safari). You can play and review all your recordings directly from the Dashboard storage below.');
+            alert('File System Access API is not supported in this browser. You can play and review all your recordings directly from the Dashboard storage.');
             return;
         }
 
@@ -129,7 +131,6 @@ class App {
             for await (const entry of this.dirHandle.values()) {
                 if (entry.kind === 'file' && entry.name.startsWith('Videolog -') && (entry.name.endsWith('.mp4') || entry.name.endsWith('.webm'))) {
                     const file = await entry.getFile();
-                    
                     const parts = entry.name.replace(/\.[^/.]+$/, "").split(' - ');
                     const category = parts.length >= 3 ? parts[2] : 'General';
                     const timestampStr = parts.length >= 4 ? parts[3] : new Date().toISOString().slice(0,10);
@@ -389,11 +390,100 @@ class App {
             });
             const videoEl = document.getElementById('camera-preview');
             videoEl.srcObject = this.mediaStream;
+
+            // Setup Canvas rendering loop with telemetry overlay
+            this.canvas = document.getElementById('recorder-canvas');
+            this.ctx = this.canvas.getContext('2d');
+
+            const renderOverlay = () => {
+                if (this.currentView !== 'recorder') return;
+                
+                if (videoEl.readyState >= videoEl.HAVE_CURRENT_DATA) {
+                    if (this.canvas.width !== videoEl.videoWidth || this.canvas.height !== videoEl.videoHeight) {
+                        this.canvas.width = videoEl.videoWidth || 1280;
+                        this.canvas.height = videoEl.videoHeight || 720;
+                    }
+
+                    // 1. Draw video frame
+                    this.ctx.drawImage(videoEl, 0, 0, this.canvas.width, this.canvas.height);
+
+                    // 2. Draw telemetry overlay layer
+                    this.drawTelemetryOverlay();
+                }
+                this.canvasAnimationId = requestAnimationFrame(renderOverlay);
+            };
+
+            if (this.canvasAnimationId) cancelAnimationFrame(this.canvasAnimationId);
+            renderOverlay();
+
         } catch (err) {
             console.error('Error accessing camera:', err);
             alert('Unable to access camera and microphone. Please check permissions.');
             this.switchView('dashboard');
         }
+    }
+
+    drawTelemetryOverlay() {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 8);
+        const q = this.questions[this.currentQuestionIndex] || {};
+        const cat = (q.category || 'General').toUpperCase();
+        const user = (this.username || 'BENJAMIN').toUpperCase();
+
+        ctx.save();
+        ctx.font = 'bold 22px monospace';
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.9)'; // Blue accent
+
+        // Top Left: Logo / Title badge
+        ctx.fillRect(40, 40, 180, 45);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText('⏳ VIDEOLOG', 55, 70);
+
+        // Top Right: Date & Time + User
+        ctx.font = 'bold 18px monospace';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(w - 450, 40, 410, 85);
+        
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(w - 450, 40, 410, 85);
+
+        ctx.fillStyle = '#60a5fa';
+        ctx.fillText(`USER: ${user}`, w - 430, 70);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`TIME: ${dateStr}`, w - 430, 100);
+
+        // Bottom Left: Category & Question Info
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(40, h - 110, w - 80, 70);
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+        ctx.strokeRect(40, h - 110, w - 80, 70);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText(`CATEGORY: ${cat}`, 60, h - 75);
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '16px sans-serif';
+        // Truncate question if too long
+        let qText = q.text || '';
+        if (qText.length > 75) qText = qText.slice(0, 72) + '...';
+        ctx.fillText(`Q: ${qText}`, 60, h - 45);
+
+        // Top Center: REC Indicator
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+        ctx.beginPath();
+        ctx.arc(w / 2 - 40, 62, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px monospace';
+        ctx.fillText('REC', w / 2 - 20, 70);
+
+        ctx.restore();
     }
 
     loadCurrentQuestion() {
@@ -408,12 +498,22 @@ class App {
 
     startRecording() {
         this.recordedChunks = [];
+        
+        // Capture stream from the canvas which contains the video + telemetry overlay layer!
+        const canvasStream = this.canvas.captureStream(30); // 30 FPS
+        
+        // Also add audio track from the mediaStream
+        const audioTracks = this.mediaStream.getAudioTracks();
+        if (audioTracks.length > 0) {
+            canvasStream.addTrack(audioTracks[0]);
+        }
+
         const options = { mimeType: MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2') ? 'video/mp4;codecs=avc1,mp4a.40.2' : 'video/webm' };
         
         try {
-            this.mediaRecorder = new MediaRecorder(this.mediaStream, options);
+            this.mediaRecorder = new MediaRecorder(canvasStream, options);
         } catch (e) {
-            this.mediaRecorder = new MediaRecorder(this.mediaStream);
+            this.mediaRecorder = new MediaRecorder(canvasStream);
         }
 
         this.mediaRecorder.ondataavailable = (e) => {
@@ -471,10 +571,8 @@ class App {
             mimeType: blob.type
         };
 
-        // 1. Save to IndexedDB
         await StorageManager.saveRecording(recordingObj);
 
-        // 2. Save locally based on browser capability (File System Access API for Chromium, standard download for Firefox/Safari)
         const now = new Date();
         const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '');
         const cleanUsername = this.username.replace(/[^a-zA-Z0-9-_]/g, '_');
@@ -484,7 +582,6 @@ class App {
         const fileName = `Videolog - ${cleanUsername} - ${cleanCategory} - ${yyyymmdd}.${ext}`;
 
         if (window.showDirectoryPicker) {
-            // Chromium Scenario (Chrome, Edge, Chrome Android / Desktop PWA)
             if (!this.dirHandle) {
                 try {
                     alert('Please select your "Videolog" folder once. The app will remember it for future recordings.');
@@ -511,11 +608,9 @@ class App {
                 this.fallbackDownload(blob, fileName);
             }
         } else {
-            // Firefox & Safari Scenario (File System Access API not supported -> automatic standard download)
             this.fallbackDownload(blob, fileName);
         }
 
-        // Advance to next question or finish session
         this.currentQuestionIndex++;
         if (this.currentQuestionIndex < this.questions.length) {
             this.loadCurrentQuestion();
@@ -536,6 +631,7 @@ class App {
     }
 
     stopCameraAndReturn() {
+        if (this.canvasAnimationId) cancelAnimationFrame(this.canvasAnimationId);
         if (this.mediaStream) {
             this.mediaStream.getTracks().forEach(track => track.stop());
         }
@@ -572,7 +668,6 @@ class App {
     }
 }
 
-// Global helpers for inline HTML callbacks & video replay
 window.updateQuestionProp = function(idx, prop, value) {
     if (window.app && window.app.questions[window.app.questions.length > idx ? idx : 0]) {
         window.app.questions[idx][prop] = value;
@@ -585,7 +680,7 @@ window.removeQuestion = function(idx) {
         window.app.questions.splice(idx, 1);
         window.app.saveAndRenderQuestions();
     } else {
-        alert('You must keep at least one question in the pack.');
+        alert('You must keep at sleek least one question in the pack.');
     }
 };
 

@@ -86,10 +86,15 @@
                 <h3 id="current-question-text" class="text-sm font-medium text-white line-clamp-2">Loading question...</h3>
             </div>
 
+            <!-- Video Preview & Telemetry Overlay Container -->
             <div class="relative bg-black rounded-xl overflow-hidden flex-1 shadow-2xl border border-slate-700 flex items-center justify-center min-h-0">
-                <video id="camera-preview" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
+                <!-- Hidden video element capturing the raw stream -->
+                <video id="camera-preview" autoplay playsinline muted class="hidden"></video>
+                <!-- Canvas rendering video + telemetry overlay -->
+                <canvas id="recorder-canvas" class="w-full h-full object-cover transform -scale-x-100"></canvas>
                 
-                <div id="timer-overlay" class="hidden absolute top-3 left-3 bg-black/70 backdrop-blur text-white px-2.5 py-1 rounded-full text-xs font-mono flex items-center space-x-1.5 shadow">
+                <!-- Timer Overlay -->
+                <div id="timer-overlay" class="hidden absolute top-3 left-3 bg-black/70 backdrop-blur text-white px-2.5 py-1 rounded-full text-xs font-mono flex items-center space-x-1.5 shadow z-10">
                     <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                     <span id="timer-display">00:00</span> / <span id="timer-max">05:00</span>
                 </div>
@@ -166,7 +171,7 @@
 
             <!-- Version Footer -->
             <div class="text-center py-2 text-[10px] text-slate-500 font-mono shrink-0">
-                VideoLog v1.4.0 • Local-First PWA
+                VideoLog v1.5.0 • Local-First PWA
             </div>
         </section>
     </main>
@@ -233,7 +238,7 @@
     </div>
 
     <!-- Core Scripts -->
-    <script type="module" src="src/js/app.js?v=1.4.0"></script>
+    <script type="module" src="src/js/app.js?v=1.5.0"></script>
     <script>
         lucide.createIcons();
     </script>
