@@ -1,5 +1,5 @@
-const CACHE_NAME = 'videolog-v0.6.3';
-const VERSION = '0.6.3';
+const CACHE_NAME = 'videolog-v0.6.4';
+const VERSION = '0.6.4';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',

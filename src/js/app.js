@@ -1,5 +1,5 @@
 import { StorageManager } from './storage.js';
-import { QUESTION_PACKS, TRANSLATIONS } from './packs.js';
+import { ALL_QUESTIONS, TRANSLATIONS } from './packs.js';
 import { BrowserBridge } from './browser.js';
 
 class App {
@@ -33,7 +33,7 @@ class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.3').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.4').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
