@@ -1,8 +1,9 @@
-const CACHE_NAME = 'videolog-v22';
+const CACHE_NAME = 'videolog-v0.6.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
+    './favicon.svg',
     './src/js/app.js',
     './src/js/storage.js',
     './src/js/packs.js',
@@ -43,7 +44,9 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    if (event.request.mode === 'navigate' || url.pathname.endsWith('index.html') || url.pathname.endsWith('/')) {
+    // Network-first strategy for absolute certainty during rapid deployment.
+    // It guarantees you always get the latest code if online.
+    if (event.request.method === 'GET') {
         event.respondWith(
             fetch(event.request)
                 .then((networkResponse) => {
@@ -56,21 +59,5 @@ self.addEventListener('fetch', (event) => {
                     return caches.match(event.request);
                 })
         );
-        return;
     }
-
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            const fetchPromise = fetch(event.request).then((networkResponse) => {
-                if (networkResponse && networkResponse.status === 200) {
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, networkResponse.clone());
-                    });
-                }
-                return networkResponse;
-            }).catch(() => {});
-
-            return cachedResponse || fetchPromise;
-        })
-    );
 });

@@ -118,6 +118,20 @@ class App {
         document.getElementById('stop-btn').addEventListener('click', () => this.stopRecording());
     }
 
+    async verifyPermission(fileHandle, readWrite) {
+        const options = {};
+        if (readWrite) {
+            options.mode = 'readwrite';
+        }
+        if ((await fileHandle.queryPermission(options)) === 'granted') {
+            return true;
+        }
+        if ((await fileHandle.requestPermission(options)) === 'granted') {
+            return true;
+        }
+        return false;
+    }
+
     async scanVideologFolder() {
         if (!BrowserBridge.supportsFileSystemAccess()) {
             alert('File System Access API is not supported in this browser (' + BrowserBridge.getBrowserType() + '). You can review recordings from Dashboard storage.');
@@ -125,9 +139,10 @@ class App {
         }
 
         try {
-            this.dirHandle = await window.showDirectoryPicker();
-            if ((await this.dirHandle.queryPermission({ mode: 'readwrite' })) !== 'granted') {
-                await this.dirHandle.requestPermission({ mode: 'readwrite' });
+            const handle = await window.showDirectoryPicker();
+            if (await this.verifyPermission(handle, true)) {
+                this.dirHandle = handle;
+                await StorageManager.setSetting('dirHandle', handle); // Persist across reloads
             }
 
             let count = 0;
@@ -186,6 +201,16 @@ class App {
         this.username = await StorageManager.getSetting('username', 'Benjamin');
         this.currentLang = await StorageManager.getSetting('language', 'en');
         
+        // Attempt to load persisted directory handle
+        try {
+            const cachedHandle = await StorageManager.getSetting('dirHandle', null);
+            if (cachedHandle) {
+                this.dirHandle = cachedHandle;
+            }
+        } catch (e) {
+            console.log("Could not load persisted directory handle", e);
+        }
+
         this.loadQuestionsForActivePack();
         document.getElementById('header-username').textContent = this.username;
         this.applyTranslations();
@@ -298,7 +323,7 @@ class App {
         // 2. Try to delete the actual file from the OS folder if we have active folder permissions
         if (this.dirHandle && rec.fileName) {
             try {
-                if ((await this.dirHandle.queryPermission({ mode: 'readwrite' })) === 'granted') {
+                if (await this.verifyPermission(this.dirHandle, true)) {
                     await this.dirHandle.removeEntry(rec.fileName);
                     console.log(`Successfully deleted ${rec.fileName} from local file system.`);
                 }
@@ -622,7 +647,16 @@ class App {
         await BrowserBridge.saveFile(blob, fileName, async () => {
             if (!this.dirHandle) {
                 alert('Please select your "Videolog" folder once. The app will remember it for future recordings.');
-                this.dirHandle = await window.showDirectoryPicker();
+                const handle = await window.showDirectoryPicker();
+                if (await this.verifyPermission(handle, true)) {
+                    this.dirHandle = handle;
+                    await StorageManager.setSetting('dirHandle', handle); // Persist across reloads
+                }
+            } else {
+                // We have a stored handle, but we need to re-verify permissions before writing
+                if (!(await this.verifyPermission(this.dirHandle, true))) {
+                    console.warn("Permission to directory lost.");
+                }
             }
             return this.dirHandle;
         });
