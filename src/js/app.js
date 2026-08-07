@@ -198,11 +198,9 @@ class App {
 
     async loadAppData() {
         await StorageManager.initPersistence();
-        this.activePackKey = await StorageManager.getSetting('active_pack', 'adult');
         this.username = await StorageManager.getSetting('username', 'Benjamin');
         this.currentLang = await StorageManager.getSetting('language', 'en');
         
-        // Attempt to load persisted directory handle
         try {
             const cachedHandle = await StorageManager.getSetting('dirHandle', null);
             if (cachedHandle) {
@@ -212,28 +210,102 @@ class App {
             console.log("Could not load persisted directory handle", e);
         }
 
-        this.loadQuestionsForActivePack();
+        const activeQ = await StorageManager.getSetting('activeQuestions', null);
+        const { ALL_QUESTIONS } = await import('./packs.js');
+        
+        if (!activeQ) {
+            const defaults = ALL_QUESTIONS.filter(q => q.defaultSelected).map(q => q.id);
+            await StorageManager.setSetting('activeQuestions', defaults);
+            this.activeQuestionIds = defaults;
+            this.showOnboardingModal(ALL_QUESTIONS, defaults);
+        } else {
+            this.activeQuestionIds = activeQ;
+        }
+
         document.getElementById('header-username').textContent = this.username;
         this.applyTranslations();
         this.renderDashboard();
     }
 
-    loadQuestionsForAppLang() {
-        const packData = QUESTION_PACKS[this.activePackKey];
-        return packData.questions.map(q => ({
-            id: q.id,
-            category: q.category[this.currentLang] || q.category['en'],
-            text: q.text[this.currentLang] || q.text['en']
-        }));
+    showOnboardingModal(allQuestions, currentSelected) {
+        const modal = document.getElementById('onboarding-modal');
+        modal.classList.remove('hidden');
+        this.renderOnboardingList(allQuestions, currentSelected);
+
+        document.getElementById('skip-onboarding-btn').onclick = async () => {
+            modal.classList.add('hidden');
+            const defaults = allQuestions.filter(q => q.defaultSelected).map(q => q.id);
+            this.activeQuestionIds = defaults;
+            await StorageManager.setSetting('activeQuestions', defaults);
+        };
+
+        document.getElementById('save-onboarding-btn').onclick = async () => {
+            if (this.tempSelectedIds.length === 0) {
+                alert('Please select at least 1 question.');
+                return;
+            }
+            modal.classList.add('hidden');
+            this.activeQuestionIds = [...this.tempSelectedIds];
+            await StorageManager.setSetting('activeQuestions', this.activeQuestionIds);
+        };
+    }
+
+    renderOnboardingList(allQuestions, selectedIds) {
+        this.tempSelectedIds = [...selectedIds];
+        const container = document.getElementById('onboarding-questions-list');
+        const counter = document.getElementById('onboarding-counter');
+        const lang = this.currentLang;
+
+        const updateUI = () => {
+            counter.textContent = `${this.tempSelectedIds.length} / 5 selected`;
+        };
+
+        container.innerHTML = allQuestions.map(q => {
+            const isSelected = this.tempSelectedIds.includes(q.id);
+            const cat = (q.category[lang] || q.category['en']);
+            const text = (q.text[lang] || q.text['en']);
+            return `
+                <div class="bg-slate-900 border ${isSelected ? 'border-blue-500 bg-blue-950/20' : 'border-slate-700'} rounded-xl p-3 flex items-start space-x-3 cursor-pointer transition select-question-item" data-id="${q.id}">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} class="mt-1 w-4 h-4 text-blue-600 bg-slate-900 border-slate-700 rounded focus:ring-blue-500 pointer-events-none">
+                    <div class="flex-1">
+                        <span class="text-[10px] uppercase font-semibold text-blue-400">${cat}</span>
+                        <p class="text-xs text-white mt-0.5">${text}</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        updateUI();
+
+        container.querySelectorAll('.select-question-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const id = el.dataset.id;
+                const idx = this.tempSelectedIds.indexOf(id);
+                if (idx > -1) {
+                    this.tempSelectedIds.splice(idx, 1);
+                } else {
+                    if (this.tempSelectedIds.length >= 5) {
+                        alert('You can select a maximum of 5 questions. Please unselect one first.');
+                        return;
+                    }
+                    this.tempSelectedIds.push(id);
+                }
+                this.renderOnboardingList(allQuestions, this.tempSelectedIds);
+            });
+        });
     }
 
     async loadQuestionsForActivePack() {
-        const savedPacks = await StorageManager.getSetting('custom_packs', null);
-        if (savedPacks && savedPacks[this.activePackKey]) {
-            this.questions = savedPacks[this.activePackKey].questions;
-        } else {
-            this.questions = this.loadQuestionsForAppLang();
-        }
+        const { ALL_QUESTIONS } = await import('./packs.js');
+        const activeIds = this.activeQuestionIds || ALL_QUESTIONS.filter(q => q.defaultSelected).map(q => q.id);
+        
+        this.questions = ALL_QUESTIONS
+            .filter(q => activeIds.includes(q.id))
+            .map(q => ({
+                id: q.id,
+                category: q.category[this.currentLang] || q.category['en'],
+                text: q.text[this.currentLang] || q.text['en']
+            }));
     }
 
     applyTranslations() {
@@ -340,12 +412,7 @@ class App {
         document.getElementById('username-input').value = this.username;
         document.getElementById('language-selector').value = this.currentLang;
 
-        const packSelector = document.getElementById('pack-selector');
-        packSelector.innerHTML = Object.keys(QUESTION_PACKS).map(key => `
-            <option value="${key}" ${key === this.activePackKey ? 'selected' : ''}>${QUESTION_PACKS[key].name[this.currentLang] || QUESTION_PACKS[key].name['en']}</option>
-        `).join('');
-
-        this.renderQuestionsEditor();
+        await this.renderQuestionsEditor();
 
         document.getElementById('username-input').onchange = async (e) => {
             this.username = e.target.value.trim() || 'User';
@@ -357,55 +424,62 @@ class App {
             this.currentLang = e.target.value;
             await StorageManager.setSetting('language', this.currentLang);
             this.applyTranslations();
-            
-            const savedPacks = await StorageManager.getSetting('custom_packs', null);
-            if (!savedPacks || !savedPacks[this.activePackKey]) {
-                this.questions = this.loadQuestionsForAppLang();
-            }
-            this.renderSettings();
-        };
-
-        packSelector.onchange = async (e) => {
-            this.activePackKey = e.target.value;
-            await StorageManager.setSetting('active_pack', this.activePackKey);
-            
-            const savedPacks = await StorageManager.getSetting('custom_packs', {});
-            if (savedPacks[this.activePackKey]) {
-                this.questions = savedPacks[this.activePackKey].questions;
-            } else {
-                this.questions = this.loadQuestionsForAppLang();
-            }
-            this.renderQuestionsEditor();
-        };
-
-        document.getElementById('add-question-btn').onclick = () => {
-            this.questions.push({
-                id: 'custom-' + Date.now(),
-                category: 'General',
-                text: 'New question text...'
-            });
-            this.saveAndRenderQuestions();
+            await this.renderSettings();
         };
 
         document.getElementById('download-ics-btn').onclick = () => this.downloadICS();
     }
 
-    renderQuestionsEditor() {
-        const listContainer = document.getElementById('questions-editor-list');
-        const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
+    async renderQuestionsEditor() {
+        const { ALL_QUESTIONS } = await import('./packs.js');
+        const container = document.getElementById('questions-editor-list');
+        const counter = document.getElementById('settings-counter');
+        const lang = this.currentLang;
+        const activeIds = this.activeQuestionIds || ALL_QUESTIONS.filter(q => q.defaultSelected).map(q => q.id);
 
-        listContainer.innerHTML = this.questions.map((q, idx) => `
-            <div class="bg-slate-900 border border-slate-700/80 rounded-lg p-3 space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-mono text-blue-400 font-bold">#${idx + 1}</span>
-                    <button onclick="window.removeQuestion(${idx})" class="text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded">${dict.delete || 'Delete'}</button>
+        if (counter) {
+            counter.textContent = `${activeIds.length} / 5 active`;
+        }
+
+        container.innerHTML = ALL_QUESTIONS.map(q => {
+            const isActive = activeIds.includes(q.id);
+            const cat = (q.category[lang] || q.category['en']);
+            const text = (q.text[lang] || q.text['en']);
+            return `
+                <div class="bg-slate-900 border ${isActive ? 'border-blue-500/80 bg-blue-950/20' : 'border-slate-700'} rounded-xl p-3 flex items-start justify-between space-x-3">
+                    <div class="flex items-start space-x-2.5 flex-1">
+                        <input type="checkbox" ${isActive ? 'checked' : ''} class="mt-1 w-4 h-4 text-blue-600 bg-slate-900 border-slate-700 rounded focus:ring-blue-500 cursor-pointer toggle-question-checkbox" data-id="${q.id}">
+                        <div>
+                            <span class="text-[10px] uppercase font-semibold text-blue-400">${cat}</span>
+                            <p class="text-xs text-white mt-0.5">${text}</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="space-y-1.5">
-                    <input type="text" value="${q.category}" onchange="window.updateQuestionProp(${idx}, 'category', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-[11px] text-blue-300 font-medium focus:outline-none" placeholder="Category">
-                    <textarea rows="2" onchange="window.updateQuestionProp(${idx}, 'text', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 text-xs text-white focus:outline-none">${q.text}</textarea>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
+
+        container.querySelectorAll('.toggle-question-checkbox').forEach(chk => {
+            chk.addEventListener('change', async (e) => {
+                const id = e.target.dataset.id;
+                if (e.target.checked) {
+                    if (this.activeQuestionIds.length >= 5) {
+                        alert('Maximum 5 questions allowed. Please uncheck one first.');
+                        e.target.checked = false;
+                        return;
+                    }
+                    this.activeQuestionIds.push(id);
+                } else {
+                    if (this.activeQuestionIds.length <= 1) {
+                        alert('You must keep at least 1 active question.');
+                        e.target.checked = true;
+                        return;
+                    }
+                    this.activeQuestionIds = this.activeQuestionIds.filter(i => i !== id);
+                }
+                await StorageManager.setSetting('activeQuestions', this.activeQuestionIds);
+                await this.renderQuestionsEditor();
+            });
+        });
     }
 
     async saveAndRenderQuestions() {

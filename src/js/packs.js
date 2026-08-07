@@ -1,10 +1,133 @@
+export const ALL_QUESTIONS = [
+    {
+        id: 'situation-current',
+        category: { en: 'Current Situation', fr: 'Situation Actuelle', es: 'Situación Actual', de: 'Aktuelle Situation', it: 'Situazione Attuale' },
+        text: {
+            en: "What occupies your mind and time the most at this exact moment?",
+            fr: "Qu'est-ce qui occupe le plus clair de ton esprit et de ton temps en ce moment précis ?",
+            es: "¿Qué ocupa la mayor parte de tu mente y tiempo en este preciso momento?",
+            de: "Was beschäftigt Ihren Geist und Ihre Zeit in diesem genau Moment am meisten?",
+            it: "Cosa occupa la maggior parte della tua mente e del tuo tempo in questo momento esatto?"
+        },
+        defaultSelected: true
+    },
+    {
+        id: 'family-friends',
+        category: { en: 'Family & Friends', fr: 'Amis & Famille', es: 'Familia y Amigos', de: 'Familie & Freunde', it: 'Famiglia e Amici' },
+        text: {
+            en: "Which relationship or shared moment with a loved one has recently stood out to you?",
+            fr: "Quelle relation ou quel moment partagé avec un proche t'a particulièrement marqué ces derniers temps ?",
+            es: "¿Qué relación o momento compartido con un ser querido te ha marcado recientemente?",
+            de: "Welche Beziehung oder welcher geteilte Moment mit einem geliebten Menschen hat Sie in letzter Zeit besonders berührt?",
+            it: "Quale relazione o momento condiviso con una persona cara ti ha colpito particolarmente di recente?"
+        },
+        defaultSelected: true
+    },
+    {
+        id: 'life-desire',
+        category: { en: 'Life & Ambitions', fr: 'Désir de Vie', es: 'Deseos de Vida', de: 'Lebenswünsche', it: 'Desideri di Vita' },
+        text: {
+            en: "If you could achieve a major project or radically change a habit in the coming months, what would it be?",
+            fr: "Si tu pouvais réaliser un grand projet ou changer radicalement une habitude dans les mois à venir, ce serait quoi ?",
+            es: "Si pudieras lograr un gran proyecto o cambiar radicalmente un hábito en los próximos meses, ¿cuál sería?",
+            de: "Wenn Sie in den kommenden Monaten ein großes Projekt verwirklichen oder eine Gewohnheit radikal ändern könnten, was wäre das?",
+            it: "Se potessi realizzare un grande progetto o cambiare radicalmente un'abitudine nei prossimi mesi, quale sarebbe?"
+        },
+        defaultSelected: true
+    },
+    {
+        id: 'future-learning',
+        category: { en: 'Future & Learning', fr: 'Apprentissage Futur', es: 'Futuro y Aprendizaje', de: 'Zukunft & Lernen', it: 'Futuro e Apprendimento' },
+        text: {
+            en: "What skill or knowledge would you absolutely love to acquire or master in the future?",
+            fr: "Quelle compétence ou quelle connaissance aimerais-tu absolument acquérir ou maîtriser dans le futur ?",
+            es: "¿Qué habilidad o conocimiento te encantaría adquirir o dominar absolutamente en el futuro?",
+            de: "Welche Fähigkeit oder welches Wissen würden Sie in Zukunft unbedingt gerne erwerben oder meistern?",
+            it: "Quale abilità o conoscenza ti piacerebbe assolutamente acquisire o padroneggiare in futuro?"
+        },
+        defaultSelected: true
+    },
+    {
+        id: 'worldwide-situation',
+        category: { en: 'Worldview', fr: 'Situation Mondiale', es: 'Situación Mundial', de: 'Weltgeschehen', it: 'Situazione Mondiale' },
+        text: {
+            en: "What is your current perspective on the state of the world today and its direction?",
+            fr: "Quel regard portes-tu sur l'état du monde actuel et son évolution ?",
+            es: "¿Cuál es tu perspectiva actual sobre el estado del mundo de hoy y su dirección?",
+            de: "Wie blicken Sie auf den Zustand der heutigen Welt und ihre Entwicklung?",
+            it: "Qual è la tua attuale prospettiva sullo stato del mondo oggi e sulla sua direzione?"
+        },
+        defaultSelected: true
+    },
+    {
+        id: 'career-milestone',
+        category: { en: 'Career & Projects', fr: 'Carrière & Projets', es: 'Carrera y Proyectos', de: 'Karriere & Projekte', it: 'Carriera e Progetti' },
+        text: {
+            en: "How do you feel about your current professional trajectory or main creative projects right now?",
+            fr: "Comment te sens-tu par rapport à ta trajectoire professionnelle actuelle ou tes principaux projets créatifs ?",
+            es: "¿Cómo te sientes acerca de tu actual trayectoria profesional o tus principales proyectos creativos?",
+            de: "Wie empfinden Sie Ihre aktuelle berufliche Laufbahn oder Ihre wichtigsten kreativen Projekte?",
+            it: "Come ti senti riguardo alla tua attuale traiettoria professionale o ai tuoi principali progetti creativi?"
+        },
+        defaultSelected: false
+    },
+    {
+        id: 'personal-growth',
+        category: { en: 'Personal Growth', fr: 'Évolution Personnelle', es: 'Crecimiento Personal', de: 'Persönliches Wachstum', it: 'Crescita Personale' },
+        text: {
+            en: "What is the most important personal lesson or realization you have experienced recently?",
+            fr: "Quelle est la leçon ou prise de conscience personnelle la plus importante que tu as vécue récemment ?",
+            es: "¿Cuál es la lección o toma de conciencia personal más importante que has experimentado recientemente?",
+            de: "Was ist die wichtigste persönliche Erkenntnis, die Sie in letzter Zeit gemacht haben?",
+            it: "Qual è la lezione o la realizzazione personale più importante che hai vissuto di recente?"
+        },
+        defaultSelected: false
+    },
+    {
+        id: 'health-energy',
+        category: { en: 'Health & Well-being', fr: 'Santé & Énergie', es: 'Salud y Bienestar', de: 'Gesundheit & Wohlbefinden', it: 'Salute e Benessere' },
+        text: {
+            en: "How are you managing your physical energy, mental balance, and daily well-being right now?",
+            fr: "Comment gères-tu ton énergie physique, ton équilibre mental et ton bien-être au quotidien en ce moment ?",
+            es: "¿Cómo estás gestionando tu energía física, tu equilibrio mental y tu bienestar diario en este momento?",
+            de: "Wie managen Sie im Moment Ihre körperliche Energie, Ihre mentale Balance und Ihr tägliches Wohlbefinden?",
+            it: "Come stai gestendo la tua energia fisica, il tuo equilibrio mentale e il tuo benessere quotidiano in questo momento?"
+        },
+        defaultSelected: false
+    },
+    {
+        id: 'five-year-vision',
+        category: { en: 'Vision', fr: 'Vision à 5 ans', es: 'Visión a 5 años', de: '5-Jahres-Vision', it: 'Visione a 5 anni' },
+        text: {
+            en: "Looking ahead, where do you realistically see yourself living, working, and thriving in 5 years?",
+            fr: "En se projetant, où te vois-tu de manière réaliste vivre, travailler et t'épanouir d'ici 5 ans ?",
+            es: "Mirando hacia adelante, ¿dónde te ves realistamente viviendo, trabajando y prosperando en 5 años?",
+            de: "Wenn Sie nach vorne blicken: Wo sehen Sie sich in 5 Jahren realistischerweise leben, arbeiten und gedeihen?",
+            it: "Guardando avanti, dove ti vedi realisticamente a vivere, lavorare e prosperare tra 5 anni?"
+        },
+        defaultSelected: false
+    },
+    {
+        id: 'gratitude-joy',
+        category: { en: 'Gratitude', fr: 'Gratitude & Joie', es: 'Gratitud y Alegría', de: 'Dankbarkeit & Freude', it: 'Gratitudine e Gioia' },
+        text: {
+            en: "What small or simple things brought you the most joy or gratitude over the past few months?",
+            fr: "Quelles petites ou simples choses t'ont apporté le plus de joie ou de gratitude au cours des derniers mois ?",
+            es: "¿Qué pequeñas o simples cosas te han traído más alegría o gratitud en los últimos meses?",
+            de: "Welche kleinen oder einfachen Dinge haben Ihnen in den letzten Monaten die meiste Freude oder Dankbarkeit gebracht?",
+            it: "Quali piccole o semplici cose ti hanno dato più gioia o gratitudine negli ultimi mesi?"
+        },
+        defaultSelected: false
+    }
+];
+
 export const TRANSLATIONS = {
     en: {
         appName: "VideoLog",
         manifestoTitle: "Your Personal Time Capsule",
         manifestoText: "Life moves fast. Perspectives shift, ambitions evolve, and memories blur. VideoLog is your private space to pause every 6 months—capturing your raw mindset, your current challenges, and your vision of the world. In a few years, your future self will thank you for preserving who you were today.",
         recordSession: "Record Session",
-        recordSubtitle: "Answer your active pack questions one by one.",
+        recordSubtitle: "Answer your 5 active questions one by one.",
         startRecording: "Start Recording Session",
         importFolder: "Scan / Import from Folder",
         importedCount: "imported successfully!",
@@ -13,14 +136,14 @@ export const TRANSLATIONS = {
         play: "Play",
         dashboard: "Dashboard",
         settings: "Settings",
-        settingsTitle: "Settings & Question Packs",
+        settingsTitle: "Settings & Question Selection",
         usernameLabel: "Your Name / Username",
         usernameHint: "Used in downloaded video filenames.",
         languageLabel: "Language",
-        activePackLabel: "Active Question Pack",
-        editQuestionsTitle: "Edit Questions in Pack",
-        addQuestion: "Add Question",
-        delete: "Delete",
+        activeQuestionsLabel: "Active Questions (Max 5)",
+        editQuestionsTitle: "Manage Your 5 Active Questions",
+        addQuestion: "Add",
+        remove: "Remove",
         remindersTitle: "Reminders",
         remindersText: "Download an ICS reminder file for recurring 6-month check-ins.",
         downloadICS: "Download 6-Month Reminder (.ics)",
@@ -35,14 +158,19 @@ export const TRANSLATIONS = {
         installAppText: "Install VideoLog on your device for quick access, offline recording, and a native app experience.",
         installNow: "Install App",
         notNow: "Not Now",
-        sessionComplete: "Session complete! All answers recorded and saved locally."
+        sessionComplete: "Session complete! All answers recorded and saved locally.",
+        onboardingTitle: "Welcome to VideoLog",
+        onboardingSubtitle: "Choose up to 5 questions that matter most to you for your time capsule sessions.",
+        skipOnboarding: "Skip & Use Default (5)",
+        saveOnboarding: "Save & Start Using VideoLog",
+        selectedCount: "Selected"
     },
     fr: {
         appName: "VideoLog",
         manifestoTitle: "Votre Capsule Temporelle Personnelle",
         manifestoText: "La vie va vite. Les perspectives changent, les ambitions évoluent et les souvenirs s'estompent. VideoLog est votre espace privé pour faire une pause tous les 6 mois : capturez votre état d'esprit brut, vos défis actuels et votre vision du monde. Dans quelques ans, votre futur vous remerciera d'avoir préservé qui vous étiez aujourd'hui.",
         recordSession: "Enregistrer une session",
-        recordSubtitle: "Répondez aux questions de votre pack actif une par une.",
+        recordSubtitle: "Répondez à vos 5 questions actives une par une.",
         startRecording: "Démarrer la session d'enregistrement",
         importFolder: "Scanner / Importer un dossier",
         importedCount: "importés avec succès !",
@@ -51,14 +179,14 @@ export const TRANSLATIONS = {
         play: "Lire",
         dashboard: "Tableau de bord",
         settings: "Paramètres",
-        settingsTitle: "Paramètres & Packs de questions",
+        settingsTitle: "Paramètres & Sélection des questions",
         usernameLabel: "Votre Nom / Pseudo",
         usernameHint: "Utilisé dans les noms de fichiers vidéo téléchargés.",
         languageLabel: "Langue",
-        activePackLabel: "Pack de questions actif",
-        editQuestionsTitle: "Modifier les questions du pack",
-        addQuestion: "Ajouter une question",
-        delete: "Supprimer",
+        activeQuestionsLabel: "Questions Actives (Max 5)",
+        editQuestionsTitle: "Gérer vos 5 questions actives",
+        addQuestion: "Ajouter",
+        remove: "Retirer",
         remindersTitle: "Rappels",
         remindersText: "Téléchargez un fichier ICS pour configurer un rappel récurrent tous les 6 mois.",
         downloadICS: "Télécharger le rappel 6 mois (.ics)",
@@ -73,14 +201,19 @@ export const TRANSLATIONS = {
         installAppText: "Installez VideoLog sur votre appareil pour un accès rapide, un enregistrement hors-ligne et une expérience native.",
         installNow: "Installer",
         notNow: "Pas maintenant",
-        sessionComplete: "Session terminée ! Toutes les réponses ont été enregistrées localement."
+        sessionComplete: "Session terminée ! Toutes les réponses ont été enregistrées localement.",
+        onboardingTitle: "Bienvenue sur VideoLog",
+        onboardingSubtitle: "Choisissez jusqu'à 5 questions qui comptent le plus pour vous lors de vos sessions de capsule temporelle.",
+        skipOnboarding: "Passer (utiliser les 5 par défaut)",
+        saveOnboarding: "Enregistrer & Démarrer",
+        selectedCount: "Sélectionnées"
     },
     es: {
         appName: "VideoLog",
         manifestoTitle: "Tu Cápsula del Tiempo Personal",
         manifestoText: "La vida pasa rápido. Las perspectivas cambian, las ambiciones evolucionan y los recuerdos se desvanecen. VideoLog es tu espacio privado para hacer una pausa cada 6 meses: captura tu mentalidad sin filtros, tus desafíos actuales y tu visión del mundo. En unos años, tu ‘yo’ del futuro te agradecerá por preservar quién eras hoy.",
         recordSession: "Grabar sesión",
-        recordSubtitle: "Responde las preguntas de tu pack activo una por una.",
+        recordSubtitle: "Responde tus 5 preguntas activas una por una.",
         startRecording: "Iniciar sesión de grabación",
         importFolder: "Escanear / Importar carpeta",
         importedCount: "importados con éxito!",
@@ -89,14 +222,14 @@ export const TRANSLATIONS = {
         play: "Reproducir",
         dashboard: "Panel",
         settings: "Ajustes",
-        settingsTitle: "Ajustes y Packs de Preguntas",
+        settingsTitle: "Ajustes y Selección de Preguntas",
         usernameLabel: "Tu Nombre / Usuario",
         usernameHint: "Usado en los nombres de archivos de video descargados.",
         languageLabel: "Idioma",
-        activePackLabel: "Pack de Preguntas Activo",
-        editQuestionsTitle: "Editar Preguntas del Pack",
-        addQuestion: "Añadir Pregunta",
-        delete: "Eliminar",
+        activeQuestionsLabel: "Preguntas Activas (Max 5)",
+        editQuestionsTitle: "Gestionar tus 5 preguntas activas",
+        addQuestion: "Añadir",
+        remove: "Quitar",
         remindersTitle: "Recordatorios",
         remindersText: "Descarga un archivo ICS para configurar un recordatorio recurrente cada 6 meses.",
         downloadICS: "Descargar recordatorio de 6 meses (.ics)",
@@ -111,14 +244,19 @@ export const TRANSLATIONS = {
         installAppText: "Instala VideoLog en tu dispositivo para un acceso rápido, grabación offline y experiencia nativa.",
         installNow: "Instalar App",
         notNow: "Ahora no",
-        sessionComplete: "¡Sesión completa! Todas las respuestas grabadas y guardadas localmente."
+        sessionComplete: "¡Sesión completa! Todas las respuestas grabadas y guardadas localmente.",
+        onboardingTitle: "Bienvenido a VideoLog",
+        onboardingSubtitle: "Elige hasta 5 preguntas que más te importen para tus sesiones de cápsula del tiempo.",
+        skipOnboarding: "Omitir (usar 5 por defecto)",
+        saveOnboarding: "Guardar y Empezar",
+        selectedCount: "Seleccionadas"
     },
     de: {
         appName: "VideoLog",
         manifestoTitle: "Ihre persönliche Zeitkapsel",
         manifestoText: "Das Leben vergeht schnell. Perspektiven verschieben sich, Ambitionen entwickeln sich weiter und Erinnerungen verblassen. VideoLog ist Ihr privater Ort, um alle 6 Monate Innehaltet zu halten – halten Sie Ihre rohe Denkweise, Ihre aktuellen Herausforderungen und Ihre Vision der Welt fest. In ein paar Jahren wird Ihr zukünftiges Ich es Ihnen danken.",
         recordSession: "Aufnahmesitzung starten",
-        recordSubtitle: "Beantworten Sie die Fragen Ihres aktiven Pakets nacheinander.",
+        recordSubtitle: "Beantworten Sie Ihre 5 aktiven Fragen nacheinander.",
         startRecording: "Aufnahme starten",
         importFolder: "Ordner scannen / importieren",
         importedCount: "erfolgreich importiert!",
@@ -127,14 +265,14 @@ export const TRANSLATIONS = {
         play: "Abspielen",
         dashboard: "Übersicht",
         settings: "Einstellungen",
-        settingsTitle: "Einstellungen & Fragen-Pakete",
+        settingsTitle: "Einstellungen & Fragenauswahl",
         usernameLabel: "Ihr Name / Benutzername",
         usernameHint: "Wird für heruntergeladene Videodateinamen verwendet.",
         languageLabel: "Sprache",
-        activePackLabel: "Aktives Fragen-Paket",
-        editQuestionsTitle: "Fragen bearbeiten",
-        addQuestion: "Frage hinzufügen",
-        delete: "Löschen",
+        activeQuestionsLabel: "Aktive Fragen (Max 5)",
+        editQuestionsTitle: "Verwalten Sie Ihre 5 aktiven Fragen",
+        addQuestion: "Hinzufügen",
+        remove: "Entfernen",
         remindersTitle: "Erinnerungen",
         remindersText: "Laden Sie eine ICS-Datei für wiederkehrende 6-Monats-Erinnerungen herunter.",
         downloadICS: "6-Monats-Erinnerung herunterladen (.ics)",
@@ -149,14 +287,19 @@ export const TRANSLATIONS = {
         installAppText: "Installieren Sie VideoLog für schnellen Zugriff, Offline-Aufnahme und ein natives App-Erlebnis.",
         installNow: "App installieren",
         notNow: "Später",
-        sessionComplete: "Sitzung abgeschlossen! Alle Antworten lokal gespeichert."
+        sessionComplete: "Sitzung abgeschlossen! Alle Antworten lokal gespeichert.",
+        onboardingTitle: "Willkommen bei VideoLog",
+        onboardingSubtitle: "Wählen Sie bis zu 5 Fragen aus, die Ihnen für Ihre Zeitkapsel-Sitzungen am wichtigsten sind.",
+        skipOnboarding: "Überspringen (Standard 5 verwenden)",
+        saveOnboarding: "Speichern & Starten",
+        selectedCount: "Ausgewählt"
     },
     it: {
         appName: "VideoLog",
         manifestoTitle: "La tua Capsula del Tempo Personale",
         manifestoText: "La vita scorre veloce. Le prospettive cambiano, le ambizioni evolvono e i ricordi sfumano. VideoLog è il tuo spazio privato per fermarti ogni 6 mesi: cattura la tua mentalità autentica, le tue sfide attuali e la tua visione del mondo. Tra qualche anno, il tuo io futuro ti ringrazierà per aver preservato chi eri oggi.",
         recordSession: "Avvia sessione di registrazione",
-        recordSubtitle: "Rispondi alle domande del tuo pacchetto attivo una per una.",
+        recordSubtitle: "Rispondi alle tue 5 domande attive una per una.",
         startRecording: "Avvia registrazione",
         importFolder: "Scansiona / Importa cartella",
         importedCount: "importati con successo!",
@@ -165,14 +308,14 @@ export const TRANSLATIONS = {
         play: "Riproduci",
         dashboard: "Dashboard",
         settings: "Impostazioni",
-        settingsTitle: "Impostazioni e Pacchetti di Domande",
+        settingsTitle: "Impostazioni e Selezione Domande",
         usernameLabel: "Il tuo Nome / Username",
         usernameHint: "Utilizzato nei nomi dei file video scaricati.",
         languageLabel: "Lingua",
-        activePackLabel: "Pacchetto Attivo",
-        editQuestionsTitle: "Modifica Domande del Pacchetto",
-        addQuestion: "Aggiungi Domanda",
-        delete: "Elimina",
+        activeQuestionsLabel: "Domande Attive (Max 5)",
+        editQuestionsTitle: "Gestisci le tue 5 domande attive",
+        addQuestion: "Aggiungi",
+        remove: "Rimuovi",
         remindersTitle: "Promemoria",
         remindersText: "Scarica un file ICS per impostare un promemoria ricorrente ogni 6 mesi.",
         downloadICS: "Scarica Promemoria 6 Mesi (.ics)",
@@ -187,42 +330,11 @@ export const TRANSLATIONS = {
         installAppText: "Installa VideoLog sul tuo dispositivo per un accesso rapido, registrazione offline ed esperienza nativa.",
         installNow: "Installa App",
         notNow: "Non ora",
-        sessionComplete: "Sessione completata! Tutte le risposte registrate e salvate localmente."
-    }
-};
-
-export const QUESTION_PACKS = {
-    'young-adult': {
-        name: { en: 'Young Adult (20s - 30s)', fr: 'Jeune Adulte (20 - 30 ans)', es: 'Joven Adulto (20s - 30s)', de: 'Jnger Erwachsener (20er - 30er)', it: 'Giovane Adulto (20 - 30 anni)' },
-        description: { en: 'Focus on career foundations, independence, worldview, and personal discovery.', fr: 'Focus sur les bases de carrière, l\'indépendance et la découverte personnelle.', es: 'Enfoque en carrera, independencia y descubrimiento personal.', de: 'Fokus auf Karriere, Unabhängigkeit und Selbstfindung.', it: 'Focus su carriera, indipendenza e scoperta personale.' },
-        questions: [
-            { id: 'ya-career', category: { en: 'Career & Ambitions', fr: 'Carrière & Ambitions', es: 'Carrera y Ambiciones', de: 'Karriere & Ambitionen', it: 'Carriera e Ambizioni' }, text: { en: 'What is your current main occupation or project, and how do you feel about your career trajectory right now?', fr: 'Quelle est votre occupation ou projet principal actuel, et que pensez-vous de votre trajectoire professionnelle ?', es: '¿Cuál es tu ocupación o proyecto principal actual y cómo te sientes respecto a tu trayectoria profesional?', de: 'Was ist Ihre aktuelle Hauptbeschäftigung und wie empfinden Sie Ihre Karriere?', it: 'Qual è la tua attuale occupazione o progetto principale e come ti senti riguardo alla tua traiettoria professionale?' } },
-            { id: 'ya-world', category: { en: 'Worldview', fr: 'Vision du Monde', es: 'Visión del Mundo', de: 'Weltbild', it: 'Visione del Mondo' }, text: { en: 'What major world event or societal trend occupies your mind the most today?', fr: 'Quel événement mondial ou tendance de société occupe le plus votre esprit aujourd\'hui ?', es: '¿Qué evento mundial o tendencia social ocupa más tu mente hoy?', de: 'Welches weltweite Ereignis oder welcher gesellschaftliche Trend beschäftigt Sie heute am meisten?', it: 'Quale grande evento mondiale o tendenza sociale occupa di più la tua mente oggi?' } },
-            { id: 'ya-family', category: { en: 'Family & Relations', fr: 'Famille & Relations', es: 'Familia y Relaciones', de: 'Familie & Beziehungen', it: 'Famiglia e Relazioni' }, text: { en: 'How has your relationship with your family and close friends evolved over the past 6 months?', fr: 'Comment votre relation avec votre famille et vos proches a-t-elle évolué au cours des 6 derniers mois ?', es: '¿Cómo ha evolucionado tu relación con tu familia y amigos cercanos en los últimos 6 meses?', de: 'Wie hat sich Ihre Beziehung zu Familie und engen Freunden in den letzten 6 Monaten entwickelt?', it: 'Come si è evoluta la tua relazione con la famiglia e gli amici stretti negli ultimi 6 mesi?' } },
-            { id: 'ya-lessons', category: { en: 'Personal Growth', fr: 'Évolution Personnelle', es: 'Crecimiento Personal', de: 'Persönliches Wachstum', it: 'Crescita Personale' }, text: { en: 'What is the most important personal lesson or realization you have experienced recently?', fr: 'Quelle est la leçon ou prise de conscience personnelle la plus importante que vous avez vécue récemment ?', es: '¿Cuál es la lección o toma de conciencia personal más importante que has experimentado recientemente?', de: 'Was ist die wichtigste persönliche Erkenntnis, die Sie kürzlich gemacht haben?', it: 'Qual è la lezione o la realizzazione personale più importante che hai vissuto di recente?' } },
-            { id: 'ya-future', category: { en: 'Vision', fr: 'Vision', es: 'Visión', de: 'Vision', it: 'Visione' }, text: { en: 'Where do you realistically see yourself living and working in 2 years?', fr: 'Où vous voyez-vous de manière réaliste vivre et travailler dans 2 ans ?', es: '¿Dónde te ves realisticamente viviendo y trabajando en 2 años?', de: 'Wo sehen Sie sich in 2 Jahren realistischerweise leben und arbeiten?', it: 'Dove ti vedi realisticamente a vivere e lavorare tra 2 anni?' } }
-        ]
-    },
-    'adult': {
-        name: { en: 'Adult & Established (30s+)', fr: 'Adulte & Établi (30 ans+)', es: 'Adulto y Establecido (30s+)', de: 'Erwachsen & Etabliert (30+)', it: 'Adulto e Stabilito (30+)' },
-        description: { en: 'Focus on life balance, long-term vision, family transmission, and deep projects.', fr: 'Focus sur l\'équilibre de vie, la vision à long terme et la transmission familiale.', es: 'Enfoque en equilibrio de vida, visión a largo plazo y proyectos.', de: 'Fokus auf Lebensbalance, langfristige Vision und Projekte.', it: 'Focus su equilibrio di vita, visione a lungo termine e progetti.' },
-        questions: [
-            { id: 'ad-career', category: { en: 'Career & Ambitions', fr: 'Carrière & Ambitions', es: 'Carrera y Ambiciones', de: 'Karriere & Ambitionen', it: 'Carriera e Ambizioni' }, text: { en: 'How would you summarize your current professional life, major responsibilities, and main frustrations or prides?', fr: 'Comment résumeriez-vous votre vie professionnelle actuelle, vos responsabilités et vos fiertés/frustrations ?', es: '¿Cómo resumirías tu vida profesional actual, responsabilidades principales y mayores orgullos o frustraciones?', de: 'Wie würden Sie Ihr aktuelles Berufsleben und Ihre größten Stolzpunkte oder Frustrationen zusammenfassen?', it: 'Come riassumeresti la tua vita professionale attuale, le tue principali responsabilità e i tuoi orgogli o frustrazioni?' } },
-            { id: 'ad-society', category: { en: 'Worldview', fr: 'Vision du Monde', es: 'Visión del Mundo', de: 'Weltbild', it: 'Visione del Mondo' }, text: { en: 'What is your current perspective on society, technology (like AI), and the direction things are heading?', fr: 'Quelle est votre perspective actuelle sur la société, la technologie (IA) et la direction que prennent les choses ?', es: '¿Cuál es tu perspectiva actual sobre la sociedad, la tecnología (como la IA) y hacia dónde van las cosas?', de: 'Was ist Ihre aktuelle Perspektive auf Gesellschaft, Technologie (wie KI) und die Richtung, in die sich die Dinge entwickeln?', it: 'Qual è la tua attuale prospettiva sulla società, la tecnologia (come l\'IA) e la direzione in cui stanno andando le cose?' } },
-            { id: 'ad-family', category: { en: 'Family & Transmission', fr: 'Famille & Transmission', es: 'Familia y Transmisión', de: 'Familie & Vermächtnis', it: 'Famiglia e Trasmissione' }, text: { en: 'What are you trying to transmit or teach to your children or close family members at this stage of their lives?', fr: 'Que essayez-vous de transmettre ou d\'enseigner à vos enfants ou proches à cette étape de leur vie ?', es: '¿Qué estás tratando de transmitir o enseñar a tus hijos o familiares cercanos en esta etapa?', de: 'Was versuchen Sie Ihren Kindern oder nahen Familienmitgliedern in dieser Lebensphase zu vermitteln?', it: 'Cosa stai cercando di trasmettere o insegnare ai tuoi figli o familiari stretti in questa fase della loro vita?' } },
-            { id: 'ad-projects', category: { en: 'Personal Projects', fr: 'Projets Personnels', es: 'Proyectos Personales', de: 'Persönliche Projekte', it: 'Progetti Personali' }, text: { en: 'What passion projects, hobbies, or personal experiments are keeping you energized right now?', fr: 'Quels projets de passion, loisirs ou expériences personnelles vous dynamisent en ce moment ?', es: '¿Qué proyectos de pasión, pasatiempos o experimentos personales te mantienen con energía ahora mismo?', de: 'Welche Leidenschaftsprojekte oder Hobbys geben Ihnen im Moment Energie?', it: 'Quali progetti di passione, hobby o esperimenti personali ti danno energia in questo momento?' } },
-            { id: 'ad-future', category: { en: 'Capsule & Vision', fr: 'Capsule & Vision', es: 'Cápsula y Visión', de: 'Kapsel & Vision', it: 'Capsula e Visione' }, text: { en: 'If you could give one piece of advice to your future self looking back 5 years from now, what would it be?', fr: 'Si vous pouviez donner un conseil à votre futur vous dans 5 ans, quel serait-il ?', es: 'Si pudieras darle un consejo a tu ' + 'yo' + ' del futuro mirando atrás en 5 años, ¿cuál sería?', de: 'Wenn Sie Ihrem zukünftigen Ich in 5 Jahren einen Rat geben könnten, welcher wäre das?', it: 'Se potessi dare un consiglio al tuo te stesso futuro tra 5 anni, quale sarebbe?' } }
-        ]
-    },
-    'young-person': {
-        name: { en: 'Young Person / Student', fr: 'Jeune / Étudiant', es: 'Joven / Estudiante', de: 'Jugendlicher / Student', it: 'Giovane / Studente' },
-        description: { en: 'Focus on studies, curiosities, friendships, and future dreams.', fr: 'Focus sur les études, curiosités, amitiés et rêves futurs.', es: 'Enfoque en estudios, curiosidades, amistades y sueños futuros.', de: 'Fokus auf Studium, Neugier, Freundschaften und Träume.', it: 'Focus su studi, curiosità, amicizie e sogni futuri.' },
-        questions: [
-            { id: 'yp-studies', category: { en: 'Studies & Work', fr: 'Études & Travail', es: 'Estudios y Trabajo', de: 'Studium & Arbeit', it: 'Studi e Lavoro' }, text: { en: 'What are you studying or working on right now, and what do you enjoy most about it?', fr: 'Qu\'étudiez-vous ou sur quoi travaillez-vous en ce moment, et qu\'aimez-vous le plus ?', es: '¿Qué estás estudiando o en qué trabajas ahora, y qué es lo que más te gusta?', de: 'Was studieren oder arbeiten Sie gerade und was gefällt Ihnen daran am meisten?', it: 'Cosa stai studiando o su cui stai lavorando ora e cosa ti piace di più?' } },
-            { id: 'yp-friends', category: { en: 'Friendships', fr: 'Amitiés', es: 'Amistades', de: 'Freundschaften', it: 'Amicizie' }, text: { en: 'Who are your closest friends, and what activities do you love doing together?', fr: 'Qui sont vos amis les plus proches, et quelles activités aimez-vous faire ensemble ?', es: '¿Quiénes son tus amigos más cercanos y qué actividades te encanta hacer juntos?', de: 'Wer sind Ihre besten Freunde und was machen Sie gerne zusammen?', it: 'Chi sono i tuoi amici più stretti e quali attività ami fare insieme?' } },
-            { id: 'yp-curiosity', category: { en: 'Learning', fr: 'Apprentissage', es: 'Aprendizaje', de: 'Lernen', it: 'Apprendimento' }, text: { en: 'What skill or subject are you most curious about learning in the near future?', fr: 'Quelle compétence ou matière avez-vous le plus hâte d\'apprendre prochainement ?', es: '¿Qué habilidad o materia tienes más curiosidad por aprender pronto?', de: 'Welche Fähigkeit möchten Sie in naher Zukunft am liebsten lernen?', it: 'Quale abilità o materia sei più curioso di imparare nel prossimo futuro?' } },
-            { id: 'yp-pride', category: { en: 'Achievements', fr: 'Réalisations', es: 'Logros', de: 'Erfolge', it: 'Traguardi' }, text: { en: 'What is something you are proud of achieving or discovering over the last 6 months?', fr: 'De quoi êtes-vous fier d\'avoir accompli ou découvert ces 6 derniers mois ?', es: '¿De qué estás orgulloso de haber logrado o descubierto en los últimos 6 meses?', de: 'Worauf sind Sie stolz, was Sie in den letzten 6 Monaten erreicht haben?', it: 'Di cosa sei orgoglioso di aver raggiunto o scoperto negli ultimi 6 mesi?' } },
-            { id: 'yp-future', category: { en: 'Future Dreams', fr: 'Rêves Futurs', es: 'Sueños Futuros', de: 'Zukunftsträume', it: 'Sogni Futuri' }, text: { en: 'What do you hope to be doing 5 years from now?', fr: 'Que espérez-vous faire d\'ici 5 ans ?', es: '¿Qué esperas estar haciendo dentro de 5 años?', de: 'Was hoffen Sie, in 5 Jahren zu tun?', it: 'Cosa speri di fare da qui a 5 anni?' } }
-        ]
+        sessionComplete: "Sessione completata! Tutte le risposte registrate e salvate localmente.",
+        onboardingTitle: "Benvenuto su VideoLog",
+        onboardingSubtitle: "Scegli fino a 5 domande che contano di più per te per le tue sessioni di capsula del tempo.",
+        skipOnboarding: "Salta (usa le 5 di default)",
+        saveOnboarding: "Salva e Inizia",
+        selectedCount: "Selezionate"
     }
 };
