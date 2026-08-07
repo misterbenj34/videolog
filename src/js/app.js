@@ -34,24 +34,17 @@ class App {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then((reg) => {
                 this.registration = reg;
-
-                // Check for updates immediately and every 15 minutes
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
-
-                // Check if a waiting worker already exists on load
                 if (reg.waiting) {
                     this.showUpdateModal(reg.waiting);
                 }
-
-                // Listen for new service worker installing
                 reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
                     if (newWorker) {
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed') {
                                 if (navigator.serviceWorker.controller) {
-                                    // New update available!
                                     this.showUpdateModal(newWorker);
                                 }
                             }
@@ -60,7 +53,6 @@ class App {
                 });
             }).catch(err => console.error('SW registration failed:', err));
 
-            // Reload page once the new service worker takes control
             let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (!refreshing) {
@@ -165,7 +157,8 @@ class App {
                         packKey: 'imported',
                         blob: file,
                         duration: 0,
-                        mimeType: file.type || 'video/mp4'
+                        mimeType: file.type || 'video/mp4',
+                        fileName: entry.name
                     };
 
                     await StorageManager.saveRecording(recordingObj);
@@ -174,7 +167,7 @@ class App {
             }
 
             if (count > 0) {
-                alert(`${count} ${dict.importedCount}`);
+                alert(`${count} ${dict.importedCount || 'recordings imported.'}`);
                 this.renderDashboard();
             } else {
                 alert('No matching Videolog files found in this folder.');
@@ -264,11 +257,14 @@ class App {
         if (recordings.length === 0) {
             container.innerHTML = `
                 <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 text-center text-slate-400 text-xs">
-                    ${dict.noSessions}
+                    ${dict.noSessions || 'No sessions recorded yet.'}
                 </div>
             `;
             return;
         }
+
+        // Sort by timestamp descending
+        recordings.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         container.innerHTML = recordings.map(rec => `
             <div class="bg-slate-800 border border-slate-700 rounded-lg p-3 flex justify-between items-center shadow-sm">
@@ -277,11 +273,41 @@ class App {
                     <h4 class="font-medium text-white text-xs truncate">${rec.questionText}</h4>
                     <p class="text-[10px] text-slate-400 mt-0.5">${new Date(rec.timestamp).toLocaleDateString()} • ${Math.round(rec.duration)}s</p>
                 </div>
-                <button onclick="window.playVideo('${rec.id}')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-2.5 py-1.5 rounded text-xs font-semibold transition shrink-0">
-                    ${dict.play}
-                </button>
+                <div class="flex space-x-1 shrink-0">
+                    <button onclick="window.playVideo('${rec.id}')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white p-1.5 rounded transition" title="Play">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+                    <button onclick="window.deleteVideo('${rec.id}')" class="bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white p-1.5 rounded transition" title="Delete">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
             </div>
         `).join('');
+    }
+
+    async deleteVideo(id) {
+        if (!confirm('Are you sure you want to delete this recording?')) return;
+
+        const recordings = await StorageManager.getAllRecordings();
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+
+        // 1. Delete from internal IndexedDB
+        await StorageManager.deleteRecording(id);
+
+        // 2. Try to delete the actual file from the OS folder if we have active folder permissions
+        if (this.dirHandle && rec.fileName) {
+            try {
+                if ((await this.dirHandle.queryPermission({ mode: 'readwrite' })) === 'granted') {
+                    await this.dirHandle.removeEntry(rec.fileName);
+                    console.log(`Successfully deleted ${rec.fileName} from local file system.`);
+                }
+            } catch (err) {
+                console.warn('Could not delete file from OS folder (it may have already been moved/deleted, or permission lost).', err);
+            }
+        }
+
+        this.renderDashboard();
     }
 
     async renderSettings() {
@@ -346,7 +372,7 @@ class App {
             <div class="bg-slate-900 border border-slate-700/80 rounded-lg p-3 space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-mono text-blue-400 font-bold">#${idx + 1}</span>
-                    <button onclick="window.removeQuestion(${idx})" class="text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded">${dict.delete}</button>
+                    <button onclick="window.removeQuestion(${idx})" class="text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded">${dict.delete || 'Delete'}</button>
                 </div>
                 <div class="space-y-1.5">
                     <input type="text" value="${q.category}" onchange="window.updateQuestionProp(${idx}, 'category', this.value)" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-[11px] text-blue-300 font-medium focus:outline-none" placeholder="Category">
@@ -417,6 +443,7 @@ class App {
                     }
 
                     this.ctx.save();
+                    // Horizontal mirror for a natural selfie-camera feel
                     this.ctx.scale(-1, 1);
                     this.ctx.drawImage(videoEl, -this.canvas.width, 0, this.canvas.width, this.canvas.height);
                     this.ctx.restore();
@@ -448,45 +475,51 @@ class App {
 
         ctx.save();
 
-        // 1. Top Left: Logo / Title badge
-        ctx.font = 'bold 22px monospace';
-        ctx.fillStyle = 'rgba(59, 130, 246, 0.9)';
-        ctx.fillRect(40, 40, 180, 45);
+        // 1. Top Left: Logo / Title badge (Subtle shadow, no hard borders)
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillText('⏳ VIDEOLOG', 55, 70);
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillText('⏳ VIDEOLOG', 40, 60);
 
-        // 2. Top Right: Pulsing REC Indicator
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(w - 140, 40, 100, 45);
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(w - 140, 40, 100, 45);
-
-        ctx.fillStyle = '#ef4444';
+        // 2. Top Right: REC Indicator (No box, just text and pulsing dot with shadow)
+        ctx.fillStyle = '#ef4444'; // Red dot
         ctx.beginPath();
-        ctx.arc(w - 115, 62, 7, 0, Math.PI * 2);
+        ctx.arc(w - 75, 53, 7, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 18px monospace';
-        ctx.fillText('REC', w - 95, 69);
 
-        // 3. Bottom Bar: Username, Date/Time & Category
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-        ctx.fillRect(40, h - 90, w - 80, 55);
-        ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(40, h - 90, w - 80, 55);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px monospace';
+        ctx.fillText('REC', w - 60, 60);
+
+        // 3. Bottom Bar (Option A: Cinematic full-width black gradient)
+        ctx.shadowColor = 'transparent'; // Turn off shadow for the background gradient
+        ctx.shadowBlur = 0;
+        
+        const grad = ctx.createLinearGradient(0, h - 90, 0, h);
+        grad.addColorStop(0, 'transparent');
+        grad.addColorStop(0.3, 'rgba(0, 0, 0, 0.6)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
+        
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, h - 90, w, 90);
+
+        // Text inside the bottom bar (Add tight shadow back for crisp readability)
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+        ctx.shadowBlur = 3;
 
         ctx.font = 'bold 16px monospace';
-        ctx.fillStyle = '#60a5fa';
-        ctx.fillText(`USER: ${user}`, 60, h - 55);
+        ctx.fillStyle = '#60a5fa'; // Blue
+        ctx.fillText(`USER: ${user}`, 40, h - 40);
 
-        ctx.fillStyle = '#cbd5e1';
-        ctx.fillText(`•   ${dateStr}`, 240, h - 55);
+        ctx.fillStyle = '#cbd5e1'; // Slate
+        ctx.fillText(`•   ${dateStr}`, 220, h - 40);
 
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillText(`CATEGORY: ${cat}`, 60, h - 25);
+        ctx.fillStyle = '#38bdf8'; // Light Blue
+        ctx.fillText(`CATEGORY: ${cat}`, 40, h - 15);
 
         ctx.restore();
     }
@@ -561,6 +594,14 @@ class App {
         const recordingId = 'rec_' + Date.now();
         const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
 
+        const now = new Date();
+        const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '');
+        const cleanUsername = this.username.replace(/[^a-zA-Z0-9-_]/g, '_');
+        const cleanCategory = (q.category || 'General').replace(/[^a-zA-Z0-9-_]/g, '_');
+        
+        const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+        const fileName = `Videolog - ${cleanUsername} - ${cleanCategory} - ${yyyymmdd}.${ext}`;
+
         const recordingObj = {
             id: recordingId,
             timestamp: new Date().toISOString(),
@@ -570,19 +611,14 @@ class App {
             packKey: this.activePackKey,
             blob: blob,
             duration: this.secondsElapsed,
-            mimeType: blob.type
+            mimeType: blob.type,
+            fileName: fileName
         };
 
+        // Save internal metadata
         await StorageManager.saveRecording(recordingObj);
 
-        const now = new Date();
-        const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '');
-        const cleanUsername = this.username.replace(/[^a-zA-Z0-9-_]/g, '_');
-        const cleanCategory = (q.category || 'General').replace(/[^a-zA-Z0-9-_]/g, '_');
-        
-        const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-        const fileName = `Videolog - ${cleanUsername} - ${cleanCategory} - ${yyyymmdd}.${ext}`;
-
+        // Save external file
         await BrowserBridge.saveFile(blob, fileName, async () => {
             if (!this.dirHandle) {
                 alert('Please select your "Videolog" folder once. The app will remember it for future recordings.');
@@ -595,7 +631,7 @@ class App {
         if (this.currentQuestionIndex < this.questions.length) {
             this.loadCurrentQuestion();
         } else {
-            alert(dict.sessionComplete);
+            alert(dict.sessionComplete || 'Session complete! Excellent work.');
             this.stopCameraAndReturn();
         }
     }
@@ -655,9 +691,11 @@ window.removeQuestion = function(idx) {
 };
 
 window.playVideo = function(id) {
-    if (window.app) {
-        window.app.openVideoModal(id);
-    }
+    if (window.app) window.app.openVideoModal(id);
+};
+
+window.deleteVideo = function(id) {
+    if (window.app) window.app.deleteVideo(id);
 };
 
 window.addEventListener('DOMContentLoaded', () => {

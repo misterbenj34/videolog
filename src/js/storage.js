@@ -48,6 +48,17 @@ export class StorageManager {
         });
     }
 
+    static async deleteRecording(id) {
+        const db = await this.openDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['recordings'], 'readwrite');
+            const store = transaction.objectStore('recordings');
+            const request = store.delete(id);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
     static async getSetting(key, defaultValue) {
         const db = await this.openDB();
         return new Promise((resolve, reject) => {
