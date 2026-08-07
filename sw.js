@@ -1,13 +1,14 @@
-const CACHE_NAME = 'videolog-v0.6.0';
+const CACHE_NAME = 'videolog-v0.6.1';
+const VERSION = '0.6.1';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
     './favicon.svg',
-    './src/js/app.js',
-    './src/js/storage.js',
-    './src/js/packs.js',
-    './src/js/browser.js',
+    `./src/js/app.js?v=${VERSION}`,
+    `./src/js/storage.js?v=${VERSION}`,
+    `./src/js/packs.js?v=${VERSION}`,
+    `./src/js/browser.js?v=${VERSION}`,
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/lucide@latest'
 ];
@@ -16,7 +17,11 @@ self.addEventListener('install', (event) => {
     event.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS_TO_CACHE);
+            // Append a cache-busting query param to ensure we fetch fresh files from the network during install
+            const cacheBustedRequests = ASSETS_TO_CACHE.map(url => {
+                return new Request(url, { cache: 'reload' });
+            });
+            return cache.addAll(cacheBustedRequests);
         })
     );
 });
@@ -44,11 +49,10 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Network-first strategy for absolute certainty during rapid deployment.
-    // It guarantees you always get the latest code if online.
+    // Strict Network-First strategy
     if (event.request.method === 'GET') {
         event.respondWith(
-            fetch(event.request)
+            fetch(event.request, { cache: 'no-store' }) // Force network fetch without HTTP cache
                 .then((networkResponse) => {
                     return caches.open(CACHE_NAME).then((cache) => {
                         cache.put(event.request, networkResponse.clone());

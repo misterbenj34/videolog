@@ -32,7 +32,8 @@ class App {
 
     initPWA() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').then((reg) => {
+            // The ?v= query param ensures we bypass HTTP cache for the worker file itself
+            navigator.serviceWorker.register('./sw.js?v=0.6.1').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -500,7 +501,7 @@ class App {
 
         ctx.save();
 
-        // 1. Top Left: Logo / Title badge (Subtle shadow, no hard borders)
+        // 1. Top Left: Logo / Title badge (Subtle shadow, absolutely no background/border frames)
         ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
         ctx.shadowBlur = 6;
         ctx.shadowOffsetX = 1;
@@ -510,7 +511,7 @@ class App {
         ctx.font = 'bold 22px sans-serif';
         ctx.fillText('⏳ VIDEOLOG', 40, 60);
 
-        // 2. Top Right: REC Indicator (No box, just text and pulsing dot with shadow)
+        // 2. Top Right: REC Indicator (No boxes! Just the red dot and text with drop shadow)
         ctx.fillStyle = '#ef4444'; // Red dot
         ctx.beginPath();
         ctx.arc(w - 75, 53, 7, 0, Math.PI * 2);
@@ -520,8 +521,8 @@ class App {
         ctx.font = 'bold 20px monospace';
         ctx.fillText('REC', w - 60, 60);
 
-        // 3. Bottom Bar (Option A: Cinematic full-width black gradient)
-        ctx.shadowColor = 'transparent'; // Turn off shadow for the background gradient
+        // 3. Bottom Bar: Cinematic Full-Width Gradient (No rigid frames)
+        ctx.shadowColor = 'transparent'; // Turn off shadow so gradient renders purely
         ctx.shadowBlur = 0;
         
         const grad = ctx.createLinearGradient(0, h - 90, 0, h);
@@ -530,9 +531,10 @@ class App {
         grad.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
         
         ctx.fillStyle = grad;
+        // Fill the entire bottom edge cleanly, absolutely no strokeRect or framing!
         ctx.fillRect(0, h - 90, w, 90);
 
-        // Text inside the bottom bar (Add tight shadow back for crisp readability)
+        // Restore shadow for crisp text readability over the gradient background
         ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
         ctx.shadowBlur = 3;
 
