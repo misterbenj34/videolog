@@ -297,7 +297,7 @@ class App {
                 <div class="min-w-0 pr-2">
                     <span class="text-[10px] text-blue-400 uppercase font-semibold block">${rec.category}</span>
                     <h4 class="font-medium text-white text-xs truncate">${rec.questionText}</h4>
-                    <p class="text-[10px] text-slate-400 mt-0.5">${new Date(rec.timestamp).toLocaleDateString()} • ${Math.round(rec.duration)}s</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">${new Date(rec.timestamp).toLocaleDateString()} ${new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${Math.round(rec.duration)}s</p>
                 </div>
                 <div class="flex space-x-1 shrink-0">
                     <button onclick="window.playVideo('${rec.id}')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white p-1.5 rounded transition" title="Play">

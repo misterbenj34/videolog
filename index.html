@@ -40,22 +40,10 @@
                 </p>
             </div>
 
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg shrink-0 space-y-3">
-                <div>
-                    <h2 class="text-md font-semibold mb-1" data-i18n="recordSession">Record Session</h2>
-                    <p class="text-xs text-slate-400" data-i18n="recordSubtitle">Answer your active pack questions one by one.</p>
-                </div>
-                <div class="flex space-x-2">
-                    <button id="start-session-btn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 text-xs">
-                        <i data-lucide="video" class="w-4 h-4"></i>
-                        <span data-i18n="startRecording">Start Recording Session</span>
-                    </button>
-                    <button id="scan-folder-btn" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 px-3 rounded-xl shadow transition flex items-center justify-center space-x-1.5 text-xs" title="Scan download folder for existing videologs">
-                        <i data-lucide="folder-search" class="w-4 h-4"></i>
-                        <span data-i18n="importFolder">Scan Folder</span>
-                    </button>
-                </div>
-            </div>
+            <button id="start-session-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm shrink-0">
+                <i data-lucide="video" class="w-5 h-5"></i>
+                <span data-i18n="startRecording">Start Recording Session</span>
+            </button>
 
             <!-- Past Logs -->
             <div class="flex-1 flex flex-col space-y-2 min-h-0">
@@ -158,6 +146,16 @@
                     </div>
                 </div>
 
+                <!-- Storage / Import -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow">
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1" data-i18n="storageTitle">Storage & Import</h3>
+                    <p class="text-[11px] text-slate-400 mb-2" data-i18n="importText">Scan your Videolog folder to import past recordings.</p>
+                    <button id="scan-folder-btn" class="w-full bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold py-2 px-3 rounded-lg transition flex items-center justify-center space-x-1.5">
+                        <i data-lucide="folder-search" class="w-4 h-4"></i>
+                        <span data-i18n="importFolder">Scan Folder</span>
+                    </button>
+                </div>
+
                 <!-- Reminders -->
                 <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow">
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1" data-i18n="remindersTitle">Reminders</h3>
@@ -171,7 +169,7 @@
 
             <!-- Version Footer -->
             <div class="text-center py-2 text-[10px] text-slate-500 font-mono shrink-0">
-                VideoLog v0.6.1 • Local-First PWA
+                VideoLog v0.6.2 • Local-First PWA
             </div>
         </section>
     </main>
@@ -238,7 +236,7 @@
     </div>
 
     <!-- Core Scripts -->
-    <script type="module" src="src/js/app.js?v=0.6.1"></script>
+    <script type="module" src="src/js/app.js?v=0.6.2"></script>
     <script>
         lucide.createIcons();
     </script>
