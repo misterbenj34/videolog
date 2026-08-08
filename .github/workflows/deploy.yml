@@ -36,7 +36,7 @@ jobs:
 
       # We just removed node_modules from git. We need to install packages cleanly
       - name: Run Tests
-        run: echo "Tests bypass while GitHub Actions auth issue is investigated"
+        run: npm install && npx vitest run
 
   deploy:
     needs: test
