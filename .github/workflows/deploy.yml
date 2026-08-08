@@ -26,8 +26,9 @@ jobs:
         with:
           node-version: '20'
 
+      # We just removed node_modules from git. We need to install packages cleanly
       - name: Run Tests
-        run: npm ci && npm test
+        run: npm install && npm test
 
   deploy:
     needs: test
