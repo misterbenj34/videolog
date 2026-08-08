@@ -2,7 +2,7 @@ import { StorageManager } from './storage.js';
 import { ALL_QUESTIONS, TRANSLATIONS } from './packs.js';
 import { BrowserBridge } from './browser.js';
 
-class App {
+export class App {
     constructor() {
         this.currentView = 'dashboard';
         this.activePackKey = 'adult';
