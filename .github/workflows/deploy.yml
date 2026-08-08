@@ -26,9 +26,17 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       # We just removed node_modules from git. We need to install packages cleanly
       - name: Run Tests
-        run: npm install && npm run test
+        run: npm ci && npx vitest run
 
   deploy:
     needs: test
