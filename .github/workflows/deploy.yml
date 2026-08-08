@@ -28,7 +28,7 @@ jobs:
 
       # We just removed node_modules from git. We need to install packages cleanly
       - name: Run Tests
-        run: npm install && npm test
+        run: npm install && npm run test
 
   deploy:
     needs: test
