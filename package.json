@@ -1,0 +1,29 @@
+{
+  "name": "videolog",
+  "version": "1.0.0",
+  "description": "A local-first web application designed to help individuals record and manage recurring time capsules (video logs) with structured prompts and guidance.",
+  "main": "sw.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/misterbenj34/videolog.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/misterbenj34/videolog/issues"
+  },
+  "homepage": "https://github.com/misterbenj34/videolog#readme",
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^30.0.1",
+    "vitest": "^4.1.10"
+  }
+}
