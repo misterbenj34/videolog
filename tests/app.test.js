@@ -94,6 +94,7 @@ beforeEach(() => {
 
     window.alert = vi.fn();
     window.confirm = vi.fn().mockReturnValue(true);
+    window.URL.createObjectURL = vi.fn().mockReturnValue('blob:test-url');
 });
 
 describe('App UI Interactions', () => {
@@ -101,6 +102,8 @@ describe('App UI Interactions', () => {
 
     beforeEach(async () => {
         app = new App();
+        window.app = app; // Expose globally for inline DOM click handlers (e.g. window.playVideo)
+        
         // Setup minimal questions for the UI mock
         app.questions = [{ id: 'q1', text: 'Test question', category: 'General' }];
         // Wait for async loadAppData to finish
@@ -158,5 +161,147 @@ describe('App UI Interactions', () => {
     it('should have required UI elements loaded with text', () => {
         expect(document.getElementById('header-username').textContent).toBe('Benjamin');
         expect(document.querySelector('[data-i18n="manifestoTitle"]').textContent).toContain('Your Personal Time Capsule');
+    });
+
+    it('should update username and reflect in UI', async () => {
+        app.switchView('settings');
+        // Wait for settings to render (renderSettings is async)
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const input = document.getElementById('username-input');
+        input.value = 'Alice';
+        input.dispatchEvent(new Event('change'));
+        
+        await new Promise(resolve => setTimeout(resolve, 50)); // let async handlers settle
+        expect(app.username).toBe('Alice');
+        expect(document.getElementById('header-username').textContent).toBe('Alice');
+    });
+
+    it('should update language and re-translate UI', async () => {
+        app.switchView('settings');
+        // Wait for settings to render
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const select = document.getElementById('language-selector');
+        select.value = 'fr';
+        select.dispatchEvent(new Event('change'));
+        
+        await new Promise(resolve => setTimeout(resolve, 50)); // let async handlers settle
+        expect(app.currentLang).toBe('fr');
+        expect(document.querySelector('[data-i18n="manifestoTitle"]').textContent).toContain('Votre Capsule Temporelle');
+    });
+
+    it('should start recording timer and toggle buttons', async () => {
+        // Must setup canvas manually because JSDOM drops methods from prototype mock sometimes
+        const canvas = document.getElementById('recorder-canvas');
+        canvas.captureStream = vi.fn().mockReturnValue({ addTrack: vi.fn(), getTracks: () => [] });
+        
+        document.getElementById('start-session-btn').click();
+        await new Promise(resolve => setTimeout(resolve, 50)); // init camera
+        
+        document.getElementById('record-btn').click(); // trigger startRecording
+        
+        expect(document.getElementById('record-btn').classList.contains('hidden')).toBe(true);
+        expect(document.getElementById('stop-btn').classList.contains('hidden')).toBe(false);
+        expect(document.getElementById('timer-overlay').classList.contains('hidden')).toBe(false);
+        expect(document.getElementById('timer-display').textContent).toBe('00:00');
+        expect(app.mediaRecorder.state).toBe('recording');
+        
+        app.stopRecording(); // Cleanup timer
+    });
+
+    it('should open and populate video modal', async () => {
+        // Need to create a fake recording first
+        const { StorageManager } = await import('../src/js/storage.js');
+        await StorageManager.saveRecording({
+            id: 'rec_modal_test',
+            timestamp: new Date().toISOString(),
+            questionId: 'q1',
+            questionText: 'Test question?',
+            category: 'General',
+            packKey: 'adult',
+            blob: new Blob(['fake video data'], { type: 'video/mp4' }),
+            duration: 10,
+            mimeType: 'video/mp4'
+        });
+
+        // Mock play method on HTMLMediaElement for JSDOM
+        window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue();
+        window.HTMLMediaElement.prototype.pause = vi.fn();
+
+        await app.renderDashboard();
+        
+        // Trigger global playVideo
+        window.playVideo('rec_modal_test');
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        expect(document.getElementById('video-modal').classList.contains('hidden')).toBe(false);
+        expect(document.getElementById('modal-category').textContent).toBe('General');
+        expect(document.getElementById('modal-question').textContent).toBe('Test question?');
+        expect(document.getElementById('modal-video').src).toContain('blob:test-url'); 
+    });
+
+    it('should prevent selecting more than 5 questions', async () => {
+        app.switchView('settings');
+        // Let's pretend user opens onboarding
+        const { ALL_QUESTIONS } = await import('../src/js/packs.js');
+        
+        // Give app 5 questions
+        app.activeQuestionIds = ['q1', 'q2', 'q3', 'q4', 'q5'];
+        app.tempSelectedIds = ['q1', 'q2', 'q3', 'q4', 'q5'];
+        
+        // Mock the renderOnboardingList locally to test the click logic
+        app.renderOnboardingList(ALL_QUESTIONS, app.tempSelectedIds);
+        
+        // Try to click an unselected question to select a 6th
+        const firstUnselected = document.querySelector('.select-question-item:not([data-id="q1"]):not([data-id="q2"]):not([data-id="q3"]):not([data-id="q4"]):not([data-id="q5"])');
+        if (firstUnselected) {
+            firstUnselected.click();
+            expect(window.alert).toHaveBeenCalledWith('You can select a maximum of 5 questions. Please unselect one first.');
+            expect(app.tempSelectedIds.length).toBe(5); // Should still be 5
+        }
+    });
+
+    it('should prevent unselecting the last active question in settings', async () => {
+        app.switchView('settings');
+        // App has 1 active question
+        app.activeQuestionIds = ['situation-current'];
+        await app.renderQuestionsEditor();
+
+        // Try to uncheck the only checked checkbox
+        const checkbox = document.querySelector('.toggle-question-checkbox[data-id="situation-current"]');
+        expect(checkbox).not.toBeNull();
+        
+        checkbox.checked = false;
+        checkbox.dispatchEvent(new Event('change'));
+        
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        expect(window.alert).toHaveBeenCalledWith('You must keep at least 1 active question.');
+        expect(app.activeQuestionIds.length).toBe(1);
+    });
+    it('should delete video after confirmation', async () => {
+        // Setup initial video
+        const { StorageManager } = await import('../src/js/storage.js');
+        await StorageManager.saveRecording({
+            id: 'rec_delete_test',
+            timestamp: new Date().toISOString(),
+            questionId: 'q1',
+            questionText: 'To be deleted',
+            category: 'General',
+            blob: new Blob([]),
+            duration: 5,
+            mimeType: 'video/mp4'
+        });
+
+        await app.renderDashboard();
+        expect((await StorageManager.getAllRecordings()).length).toBeGreaterThan(0);
+        
+        // Delete video globally (confirm is already mocked to true in beforeEach)
+        window.deleteVideo('rec_delete_test');
+        await new Promise(resolve => setTimeout(resolve, 10));
+        
+        const allRecs = await StorageManager.getAllRecordings();
+        expect(allRecs.find(r => r.id === 'rec_delete_test')).toBeUndefined();
     });
 });
