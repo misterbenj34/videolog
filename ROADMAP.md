@@ -33,9 +33,12 @@ VideoLog is built as a strictly **Local-First Progressive Web App (PWA)**.
 - **Reminders:** Ability to generate and download an `.ics` calendar file to remind the user every 6 months.
 - **Testing Infrastructure:** 20 automated tests validating `StorageManager`, `BrowserBridge`, translations, and complete UI interaction flows.
 
-## 🚀 Future Enhancements (Planned)
+## 🚀 Future Enhancements (In Progress)
+
+- [ ] **Cloud Adapters (In Progress):** Optional end-to-end encrypted cloud backup integrations (Google Drive, Dropbox) via client-side OAuth to automatically mirror videos into a dedicated `VideoLog/` folder without compromising the local-first philosophy.
+
+## 🔮 Backlog
 
 - [ ] **Data Backup & Restore:** JSON export/import of all metadata and custom settings for device migration.
 - [ ] **Temporal Comparison:** Side-by-side video playback allowing users to compare their answers to the exact same question across multiple 6-month sessions.
 - [ ] **Audio-Only Mode:** Fallback or toggle for users who prefer voice-only time capsules.
-- [ ] **Cloud Adapters:** Optional end-to-end encrypted cloud backup integrations (e.g., WebDAV, Google Drive) without compromising the local-first philosophy.
