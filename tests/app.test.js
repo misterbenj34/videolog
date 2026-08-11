@@ -102,7 +102,15 @@ describe('App UI Interactions', () => {
 
     beforeEach(async () => {
         app = new App();
-        window.app = app; // Expose globally for inline DOM click handlers (e.g. window.playVideo)
+        window.app = app; // Expose globally for inline DOM click handlers
+        
+        // Define global inline handlers (they are bound in app.js at the bottom normally)
+        window.playVideo = function(id) { if(window.app) window.app.openVideoModal(id); };
+        window.deleteVideo = function(id) { if(window.app) window.app.deleteVideo(id); };
+        
+        // Workaround for JSDOM evaluating onclick strings
+        document.defaultView.playVideo = window.playVideo;
+        document.defaultView.deleteVideo = window.deleteVideo;
         
         // Setup minimal questions for the UI mock
         app.questions = [{ id: 'q1', text: 'Test question', category: 'General' }];
@@ -231,8 +239,14 @@ describe('App UI Interactions', () => {
 
         await app.renderDashboard();
         
-        // Trigger global playVideo
+        // Find the play button in the DOM
+        const playBtn = document.querySelector(`button[onclick="window.playVideo('rec_modal_test')"]`);
+        expect(playBtn).not.toBeNull();
+        
+        // JSDOM has sandbox isolation issues with inline onclick strings, so we call the function directly
+        // after verifying the button is correctly wired in the generated DOM.
         window.playVideo('rec_modal_test');
+        
         await new Promise(resolve => setTimeout(resolve, 10));
 
         expect(document.getElementById('video-modal').classList.contains('hidden')).toBe(false);
@@ -297,8 +311,13 @@ describe('App UI Interactions', () => {
         await app.renderDashboard();
         expect((await StorageManager.getAllRecordings()).length).toBeGreaterThan(0);
         
-        // Delete video globally (confirm is already mocked to true in beforeEach)
+        // Find the delete button in the DOM
+        const deleteBtn = document.querySelector(`button[onclick="window.deleteVideo('rec_delete_test')"]`);
+        expect(deleteBtn).not.toBeNull();
+        
+        // Call function directly due to JSDOM inline onclick sandbox
         window.deleteVideo('rec_delete_test');
+        
         await new Promise(resolve => setTimeout(resolve, 10));
         
         const allRecs = await StorageManager.getAllRecordings();
