@@ -34,7 +34,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.6').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.7').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -247,6 +247,8 @@ export class App {
             this.activeQuestionIds = activeQ;
         }
 
+        await this.loadQuestionsForActivePack();
+
         document.getElementById('header-username').textContent = this.username;
         this.applyTranslations();
         this.renderDashboard();
@@ -262,6 +264,7 @@ export class App {
             const defaults = allQuestions.filter(q => q.defaultSelected).map(q => q.id);
             this.activeQuestionIds = defaults;
             await StorageManager.setSetting('activeQuestions', defaults);
+            await this.loadQuestionsForActivePack();
         };
 
         document.getElementById('save-onboarding-btn').onclick = async () => {
@@ -272,6 +275,7 @@ export class App {
             modal.classList.add('hidden');
             this.activeQuestionIds = [...this.tempSelectedIds];
             await StorageManager.setSetting('activeQuestions', this.activeQuestionIds);
+            await this.loadQuestionsForActivePack();
         };
     }
 
@@ -516,6 +520,7 @@ export class App {
             this.currentLang = e.target.value;
             await StorageManager.setSetting('language', this.currentLang);
             this.applyTranslations();
+            await this.loadQuestionsForActivePack();
             await this.renderSettings();
         });
 
@@ -569,6 +574,7 @@ export class App {
                     this.activeQuestionIds = this.activeQuestionIds.filter(i => i !== id);
                 }
                 await StorageManager.setSetting('activeQuestions', this.activeQuestionIds);
+                await this.loadQuestionsForActivePack();
                 await this.renderQuestionsEditor();
             });
         });
