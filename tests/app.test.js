@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { App } from '../src/js/app.js';
+import { CloudManager } from '../src/js/cloud.js'; // Needed to mock CloudManager
 
 const html = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf8');
 
@@ -14,6 +15,13 @@ beforeEach(() => {
     vi.stubGlobal('lucide', {
         createIcons: vi.fn()
     });
+
+    vi.spyOn(CloudManager.gdrive, 'isConnected').mockReturnValue(false);
+    vi.spyOn(CloudManager.gdrive, 'login').mockImplementation(() => {});
+    vi.spyOn(CloudManager.gdrive, 'logout').mockResolvedValue();
+    vi.spyOn(CloudManager.gdrive, 'uploadVideo').mockResolvedValue();
+    vi.spyOn(CloudManager, 'init').mockResolvedValue();
+    vi.spyOn(CloudManager, 'handleAuthCallback').mockResolvedValue(false);
 
     vi.stubGlobal('navigator', {
         ...navigator,
@@ -129,6 +137,13 @@ describe('App UI Interactions', () => {
         expect(app.currentView).toBe('settings');
         expect(document.getElementById('view-dashboard').classList.contains('hidden')).toBe(true);
         expect(document.getElementById('view-settings').classList.contains('hidden')).toBe(false);
+    });
+
+    it('should switch to cloud view when cloud nav button is clicked', () => {
+        document.getElementById('nav-cloud').click();
+        expect(app.currentView).toBe('cloud');
+        expect(document.getElementById('view-dashboard').classList.contains('hidden')).toBe(true);
+        expect(document.getElementById('view-cloud').classList.contains('hidden')).toBe(false);
     });
 
     it('should switch to dashboard view when dashboard nav button is clicked', () => {

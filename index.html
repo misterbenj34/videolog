@@ -166,6 +166,49 @@
                 VideoLog v0.6.4 • Local-First PWA
             </div>
         </section>
+
+        <!-- Cloud View -->
+        <section id="view-cloud" class="hidden flex-1 flex flex-col space-y-4 overflow-y-auto">
+            <h2 class="text-md font-semibold" data-i18n="cloudBackupTitle">Cloud Backup</h2>
+            <p class="text-[11px] text-slate-300 mb-4 leading-relaxed" data-i18n="cloudBackupDesc">Connect your cloud storage. Videos will be automatically backed up to a dedicated "VideoLog" folder after recording.</p>
+            
+            <div class="space-y-4 pb-6">
+                <!-- Google Drive Card -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow flex flex-col space-y-3">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-8 h-8 shrink-0" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="#FFC107" d="M17 6l11 19-11 19-11-19L17 6z"/>
+                            <path fill="#1976D2" d="M17 44h22l11-19H28L17 44z"/>
+                            <path fill="#4CAF50" d="M39 6l11 19-11 19H17l11-19L39 6z"/>
+                        </svg>
+                        <div class="flex-1">
+                            <h3 class="text-sm font-bold text-white">Google Drive</h3>
+                            <p id="gdrive-status" class="text-xs text-slate-400 font-medium" data-i18n="notConnected">Not connected</p>
+                        </div>
+                    </div>
+                    <button id="gdrive-connect-btn" class="w-full bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white font-medium py-2.5 rounded-lg transition text-xs flex justify-center items-center">
+                        <i data-lucide="log-in" class="w-4 h-4 mr-1.5"></i>
+                        <span id="gdrive-btn-text" data-i18n="connectGDrive">Connect Google Drive</span>
+                    </button>
+                </div>
+
+                <!-- Dropbox Card -->
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow flex flex-col space-y-3 opacity-50 pointer-events-none">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-8 h-8 shrink-0" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="#0061FF" d="M12 10.6L2 16.9l10 6.3 10-6.3-10-6.3zm24 0l-10 6.3 10 6.3 10-6.3-10-6.3zM2 29.5l10 6.3 10-6.3-10-6.3L2 29.5zm24-6.3l10 6.3 10-6.3-10-6.3-10 6.3zm-10 8.5l-10 6.3 10 6.3 10-6.3-10-6.3z"/>
+                        </svg>
+                        <div class="flex-1">
+                            <h3 class="text-sm font-bold text-white">Dropbox</h3>
+                            <p class="text-xs text-slate-400">Coming soon</p>
+                        </div>
+                    </div>
+                    <button disabled class="w-full bg-slate-700 border border-slate-600 text-slate-400 font-medium py-2.5 rounded-lg text-xs">
+                        <span data-i18n="connectDropbox">Connect</span>
+                    </button>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Bottom Navigation Bar -->
@@ -173,6 +216,10 @@
         <button id="nav-dashboard" class="nav-btn flex flex-col items-center text-blue-400 space-y-0.5 transition" data-target="dashboard">
             <i data-lucide="home" class="w-5 h-5"></i>
             <span class="text-[10px]" data-i18n="dashboard">Dashboard</span>
+        </button>
+        <button id="nav-cloud" class="nav-btn flex flex-col items-center text-slate-400 hover:text-white space-y-0.5 transition" data-target="cloud">
+            <i data-lucide="cloud" class="w-5 h-5"></i>
+            <span class="text-[10px]" data-i18n="cloud">Cloud Sync</span>
         </button>
         <button id="nav-settings" class="nav-btn flex flex-col items-center text-slate-400 hover:text-white space-y-0.5 transition" data-target="settings">
             <i data-lucide="settings" class="w-5 h-5"></i>

@@ -1,6 +1,7 @@
 import { StorageManager } from './storage.js';
 import { ALL_QUESTIONS, TRANSLATIONS } from './packs.js';
 import { BrowserBridge } from './browser.js';
+import { CloudManager } from './cloud.js';
 
 export class App {
     constructor() {
@@ -114,9 +115,20 @@ export class App {
         
         document.getElementById('nav-dashboard').addEventListener('click', () => this.switchView('dashboard'));
         document.getElementById('nav-settings').addEventListener('click', () => this.switchView('settings'));
+        document.getElementById('nav-cloud').addEventListener('click', () => this.switchView('cloud'));
 
         document.getElementById('record-btn').addEventListener('click', () => this.startRecording());
         document.getElementById('stop-btn').addEventListener('click', () => this.stopRecording());
+
+        document.getElementById('gdrive-connect-btn').addEventListener('click', () => {
+            if (CloudManager.gdrive.isConnected()) {
+                if (confirm('Disconnect Google Drive?')) {
+                    CloudManager.gdrive.logout().then(() => this.renderCloud());
+                }
+            } else {
+                CloudManager.gdrive.login();
+            }
+        });
     }
 
     async verifyPermission(fileHandle, readWrite) {
@@ -198,6 +210,19 @@ export class App {
 
     async loadAppData() {
         await StorageManager.initPersistence();
+        await CloudManager.init();
+
+        // Handle OAuth Callback if present in URL
+        if (window.location.hash) {
+            const handled = await CloudManager.handleAuthCallback(window.location.hash);
+            if (handled) {
+                // Clean the URL so the user doesn't bookmark the access token
+                window.history.replaceState(null, '', window.location.pathname);
+                // Immediately show cloud view so they see they are connected
+                this.currentView = 'cloud';
+            }
+        }
+
         this.username = await StorageManager.getSetting('username', 'Benjamin');
         this.currentLang = await StorageManager.getSetting('language', 'en');
         
@@ -323,6 +348,7 @@ export class App {
         document.getElementById('view-dashboard').classList.add('hidden');
         document.getElementById('view-recorder').classList.add('hidden');
         document.getElementById('view-settings').classList.add('hidden');
+        document.getElementById('view-cloud').classList.add('hidden');
 
         document.querySelectorAll('.nav-btn').forEach(btn => {
             const target = btn.getAttribute('data-target');
@@ -344,7 +370,39 @@ export class App {
         } else if (viewName === 'settings') {
             document.getElementById('view-settings').classList.remove('hidden');
             this.renderSettings();
+        } else if (viewName === 'cloud') {
+            document.getElementById('view-cloud').classList.remove('hidden');
+            this.renderCloud();
         }
+    }
+
+    renderCloud() {
+        const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
+        const gStatus = document.getElementById('gdrive-status');
+        const gBtn = document.getElementById('gdrive-connect-btn');
+        const gBtnText = document.getElementById('gdrive-btn-text');
+
+        if (CloudManager.gdrive.isConnected()) {
+            gStatus.textContent = dict.connected || 'Connected (Ready to Backup)';
+            gStatus.classList.remove('text-slate-400');
+            gStatus.classList.add('text-green-400');
+            
+            gBtn.classList.remove('bg-slate-700', 'hover:bg-slate-600', 'border-slate-600');
+            gBtn.classList.add('bg-red-900/40', 'hover:bg-red-900/60', 'border-red-800/50', 'text-red-400');
+            gBtnText.textContent = dict.disconnect || 'Disconnect';
+            gBtn.querySelector('i').setAttribute('data-lucide', 'log-out');
+        } else {
+            gStatus.textContent = dict.notConnected || 'Not connected';
+            gStatus.classList.remove('text-green-400');
+            gStatus.classList.add('text-slate-400');
+            
+            gBtn.classList.remove('bg-red-900/40', 'hover:bg-red-900/60', 'border-red-800/50', 'text-red-400');
+            gBtn.classList.add('bg-slate-700', 'hover:bg-slate-600', 'border-slate-600', 'text-white');
+            gBtnText.textContent = dict.connectGDrive || 'Connect Google Drive';
+            gBtn.querySelector('i').setAttribute('data-lucide', 'log-in');
+        }
+        
+        lucide.createIcons();
     }
 
     async renderDashboard() {
@@ -369,9 +427,17 @@ export class App {
                 <div class="min-w-0 pr-2">
                     <span class="text-[10px] text-blue-400 uppercase font-semibold block">${rec.category}</span>
                     <h4 class="font-medium text-white text-xs truncate">${rec.questionText}</h4>
-                    <p class="text-[10px] text-slate-400 mt-0.5">${new Date(rec.timestamp).toLocaleDateString()} ${new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${Math.round(rec.duration)}s</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">
+                        ${new Date(rec.timestamp).toLocaleDateString()} ${new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${Math.round(rec.duration)}s
+                        ${rec.cloudSynced ? '<span class="ml-1 text-green-400" title="Backed up to cloud">☁️</span>' : ''}
+                    </p>
                 </div>
                 <div class="flex space-x-1 shrink-0">
+                    ${!rec.cloudSynced && CloudManager.gdrive.isConnected() ? `
+                        <button onclick="window.uploadVideo('${rec.id}')" id="upload-btn-${rec.id}" class="bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white p-1.5 rounded transition" title="Backup to Cloud">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        </button>
+                    ` : ''}
                     <button onclick="window.playVideo('${rec.id}')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white p-1.5 rounded transition" title="Play">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </button>
@@ -381,6 +447,32 @@ export class App {
                 </div>
             </div>
         `).join('');
+    }
+
+    async uploadVideoManual(id) {
+        const recordings = await StorageManager.getAllRecordings();
+        const rec = recordings.find(r => r.id === id);
+        if (!rec || !rec.blob || !CloudManager.gdrive.isConnected()) return;
+
+        const btn = document.getElementById(`upload-btn-${id}`);
+        if (btn) {
+            btn.classList.add('animate-pulse', 'opacity-50');
+            btn.disabled = true;
+        }
+
+        try {
+            await CloudManager.gdrive.uploadVideo(rec);
+            rec.cloudSynced = true;
+            await StorageManager.saveRecording(rec);
+            this.renderDashboard();
+        } catch (err) {
+            console.error('Manual upload failed:', err);
+            alert('Upload failed. Please check your connection or re-authenticate.');
+            if (btn) {
+                btn.classList.remove('animate-pulse', 'opacity-50');
+                btn.disabled = false;
+            }
+        }
     }
 
     async deleteVideo(id) {
@@ -414,18 +506,18 @@ export class App {
 
         await this.renderQuestionsEditor();
 
-        document.getElementById('username-input').onchange = async (e) => {
+        document.getElementById('username-input').addEventListener('change', async (e) => {
             this.username = e.target.value.trim() || 'User';
             document.getElementById('header-username').textContent = this.username;
             await StorageManager.setSetting('username', this.username);
-        };
+        });
 
-        document.getElementById('language-selector').onchange = async (e) => {
+        document.getElementById('language-selector').addEventListener('change', async (e) => {
             this.currentLang = e.target.value;
             await StorageManager.setSetting('language', this.currentLang);
             this.applyTranslations();
             await this.renderSettings();
-        };
+        });
 
         document.getElementById('download-ics-btn').onclick = () => this.downloadICS();
     }
@@ -713,11 +805,27 @@ export class App {
             blob: blob,
             duration: this.secondsElapsed,
             mimeType: blob.type,
-            fileName: fileName
+            fileName: fileName,
+            cloudSynced: false
         };
 
         // Save internal metadata
         await StorageManager.saveRecording(recordingObj);
+
+        // Upload to Cloud (if connected)
+        if (CloudManager.gdrive.isConnected()) {
+            try {
+                // Show tiny indicator or just let it be background?
+                // Background is fine for Option A, if it fails we just keep cloudSynced: false
+                await CloudManager.gdrive.uploadVideo(recordingObj);
+                recordingObj.cloudSynced = true;
+                await StorageManager.saveRecording(recordingObj); // Update sync status
+                console.log('Successfully backed up to Google Drive.');
+            } catch (err) {
+                console.error('Cloud upload failed:', err);
+                // Fail silently for the user, they can retry in dashboard later
+            }
+        }
 
         // Save external file
         await BrowserBridge.saveFile(blob, fileName, async () => {
@@ -806,6 +914,10 @@ window.playVideo = function(id) {
 
 window.deleteVideo = function(id) {
     if (window.app) window.app.deleteVideo(id);
+};
+
+window.uploadVideo = function(id) {
+    if (window.app) window.app.uploadVideoManual(id);
 };
 
 window.addEventListener('DOMContentLoaded', () => {
