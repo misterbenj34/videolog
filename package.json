@@ -1,6 +1,6 @@
 {
   "name": "videolog",
-  "version": "0.6.14",
+  "version": "0.6.15",
   "description": "A local-first web application designed to help individuals record and manage recurring time capsules (video logs) with structured prompts and guidance.",
   "main": "sw.js",
   "directories": {

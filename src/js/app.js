@@ -3,6 +3,16 @@ import { ALL_QUESTIONS, TRANSLATIONS } from './packs.js';
 import { BrowserBridge } from './browser.js';
 import { CloudManager } from './cloud.js';
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 export class App {
     constructor() {
         this.currentView = 'dashboard';
@@ -34,7 +44,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.14').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.15').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -244,13 +254,16 @@ export class App {
         this.currentLang = await StorageManager.getSetting('language', 'en');
         
         try {
-            const cachedHandle = await StorageManager.getSetting('dirHandle', null);
-            if (cachedHandle) {
-                this.dirHandle = cachedHandle;
-            }
-        } catch (e) {
-            console.log("Could not load persisted directory handle", e);
-        }
+                    const cachedHandle = await StorageManager.getSetting('dirHandle', null);
+                    if (cachedHandle) {
+                        this.dirHandle = cachedHandle;
+                    }
+                } catch (e) {
+                    // IndexedDB serialization of FileSystemDirectoryHandle is fragile across
+                    // browser implementations — the handle may silently not survive a reload.
+                    // The user will simply need to pick their folder again on next session.
+                    console.warn("Could not restore directory handle from IndexedDB (this is expected in some browsers — you'll need to pick the folder again in Settings)", e);
+                }
 
         const activeQ = await StorageManager.getSetting('activeQuestions', null);
         const { ALL_QUESTIONS } = await import('./packs.js');
@@ -458,8 +471,8 @@ export class App {
         container.innerHTML = recordings.map(rec => `
             <div class="bg-slate-800 border border-slate-700 rounded-lg p-3 flex justify-between items-center shadow-sm">
                 <div class="min-w-0 pr-2">
-                    <span class="text-[10px] text-blue-400 uppercase font-semibold block">${rec.category}</span>
-                    <h4 class="font-medium text-white text-xs truncate">${rec.questionText}</h4>
+                    <span class="text-[10px] text-blue-400 uppercase font-semibold block">${escapeHtml(rec.category)}</span>
+                    <h4 class="font-medium text-white text-xs truncate">${escapeHtml(rec.questionText)}</h4>
                     <p class="text-[10px] text-slate-400 mt-0.5">
                         ${new Date(rec.timestamp).toLocaleDateString()} ${new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${Math.round(rec.duration)}s
                         ${rec.cloudSynced ? '<span class="ml-1.5 inline-flex align-text-bottom" title="Backed up to cloud"><svg class="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg></span>' : ''}
@@ -633,16 +646,45 @@ export class App {
     }
 
     downloadICS() {
+        // Compute a sensible default start date: next Jan 1 or July 1, whichever comes first,
+        // at 9am. This gives the user a recurring twice-yearly reminder aligned to calendar halves.
+        const now = new Date();
+        const thisYear = now.getFullYear();
+        const candidates = [
+            new Date(thisYear, 0, 1, 9, 0, 0),   // Jan 1
+            new Date(thisYear, 6, 1, 9, 0, 0),   // Jul 1
+            new Date(thisYear + 1, 0, 1, 9, 0, 0) // Jan 1 next year
+        ];
+        let startDate = candidates.find(d => d > now) || candidates[2];
+
+        const formatICSDate = (d) => {
+            return d.getFullYear() +
+                String(d.getMonth() + 1).padStart(2, '0') +
+                String(d.getDate()).padStart(2, '0') + 'T' +
+                String(d.getHours()).padStart(2, '0') +
+                String(d.getMinutes()).padStart(2, '0') +
+                String(d.getSeconds()).padStart(2, '0');
+        };
+
+        const dtStart = formatICSDate(startDate);
+        const endDate = new Date(startDate.getTime() + 15 * 60000); // 15 min duration
+        const dtEnd = formatICSDate(endDate);
+
         const icsContent = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
             'PRODID:-//VideoLog Time Capsule//EN',
             'BEGIN:VEVENT',
-            'SUMMARY:VideoLog Time Capsule Session',
+            'DTSTART:' + dtStart,
+            'DTEND:' + dtEnd,
+            'SUMMARY:🎥 VideoLog Time Capsule Session',
             'DESCRIPTION:Time to record your 6-month VideoLog time capsule and capture your mindset!',
-            'FREQ=MONTHLY;INTERVAL=6',
-            'ACTION:DISPLAY',
+            'RRULE:FREQ=MONTHLY;INTERVAL=6',
+            'BEGIN:VALARM',
             'TRIGGER:-P1D',
+            'ACTION:DISPLAY',
+            'DESCRIPTION:Reminder: Your 6-month VideoLog session is due tomorrow!',
+            'END:VALARM',
             'END:VEVENT',
             'END:VCALENDAR'
         ].join('\r\n');
