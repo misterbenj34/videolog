@@ -34,7 +34,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.5').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.6').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -811,21 +811,6 @@ export class App {
 
         // Save internal metadata
         await StorageManager.saveRecording(recordingObj);
-
-        // Upload to Cloud (if connected)
-        if (CloudManager.gdrive.isConnected()) {
-            try {
-                // Show tiny indicator or just let it be background?
-                // Background is fine for Option A, if it fails we just keep cloudSynced: false
-                await CloudManager.gdrive.uploadVideo(recordingObj);
-                recordingObj.cloudSynced = true;
-                await StorageManager.saveRecording(recordingObj); // Update sync status
-                console.log('Successfully backed up to Google Drive.');
-            } catch (err) {
-                console.error('Cloud upload failed:', err);
-                // Fail silently for the user, they can retry in dashboard later
-            }
-        }
 
         // Save external file
         await BrowserBridge.saveFile(blob, fileName, async () => {
