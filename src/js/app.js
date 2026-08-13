@@ -34,7 +34,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.9').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.10').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -83,24 +83,23 @@ export class App {
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             this.deferredPrompt = e;
-            if (!sessionStorage.getItem('install_prompt_dismissed')) {
-                document.getElementById('install-modal').classList.remove('hidden');
-            }
+            const installBtn = document.getElementById('settings-install-btn');
+            if (installBtn) installBtn.classList.remove('hidden');
         });
 
-        document.getElementById('confirm-install-btn').addEventListener('click', async () => {
-            document.getElementById('install-modal').classList.add('hidden');
-            if (this.deferredPrompt) {
-                this.deferredPrompt.prompt();
-                const { outcome } = await this.deferredPrompt.userChoice;
-                this.deferredPrompt = null;
-            }
-        });
-
-        document.getElementById('dismiss-install-btn').addEventListener('click', () => {
-            document.getElementById('install-modal').classList.add('hidden');
-            sessionStorage.setItem('install_prompt_dismissed', 'true');
-        });
+        const installBtn = document.getElementById('settings-install-btn');
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (this.deferredPrompt) {
+                    this.deferredPrompt.prompt();
+                    const { outcome } = await this.deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        installBtn.classList.add('hidden');
+                    }
+                    this.deferredPrompt = null;
+                }
+            });
+        }
     }
 
     showUpdateModal(worker) {
