@@ -1,5 +1,5 @@
-const CACHE_NAME = 'videolog-v0.6.4';
-const VERSION = '0.6.4';
+const CACHE_NAME = 'videolog-v0.6.5';
+const VERSION = '0.6.5';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -9,6 +9,7 @@ const ASSETS_TO_CACHE = [
     `./src/js/storage.js?v=${VERSION}`,
     `./src/js/packs.js?v=${VERSION}`,
     `./src/js/browser.js?v=${VERSION}`,
+    `./src/js/cloud.js?v=${VERSION}`,
     'https://cdn.tailwindcss.com',
     'https://unpkg.com/lucide@latest'
 ];

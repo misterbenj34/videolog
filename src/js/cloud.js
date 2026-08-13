@@ -17,9 +17,9 @@ class GoogleDriveAdapter {
     }
 
     login() {
-        // Compute base redirect URI ensuring no trailing hash or search queries
-        let redirectUri = window.location.origin + window.location.pathname;
-        if (!redirectUri.endsWith('/')) redirectUri += '/';
+        // Ensure redirect URI perfectly matches what is registered in Google Cloud Console
+        // By default, GitHub Pages resolves to the folder root
+        const redirectUri = 'https://misterbenj34.github.io/videolog/';
         
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${G_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(G_SCOPE)}&include_granted_scopes=true`;
         window.location.href = authUrl;
