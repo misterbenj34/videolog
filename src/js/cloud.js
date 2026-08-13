@@ -10,10 +10,20 @@ class GoogleDriveAdapter {
 
     async init() {
         this.token = await StorageManager.getSetting('gdrive_token', null);
+        this.tokenExpiresAt = await StorageManager.getSetting('gdrive_token_expires_at', null);
     }
 
     isConnected() {
         return !!this.token;
+    }
+
+    // True once we have a token AND we know (from the OAuth response) that it has expired.
+    // If we never captured an expiry (older sessions), we conservatively report "not expired"
+    // and let the first failed API call surface the real 401.
+    isTokenExpired() {
+        if (!this.token) return false;
+        if (!this.tokenExpiresAt) return false;
+        return Date.now() >= this.tokenExpiresAt;
     }
 
     login() {
@@ -27,7 +37,9 @@ class GoogleDriveAdapter {
 
     async logout() {
         this.token = null;
+        this.tokenExpiresAt = null;
         await StorageManager.setSetting('gdrive_token', null);
+        await StorageManager.setSetting('gdrive_token_expires_at', null);
         await StorageManager.setSetting('gdrive_folder_id', null);
     }
 
@@ -35,13 +47,22 @@ class GoogleDriveAdapter {
         const params = new URLSearchParams(hash.substring(1));
         if (params.has('access_token')) {
             this.token = params.get('access_token');
+            // expires_in is in seconds (Google implicit flow tokens live ~1h)
+            const expiresInSec = parseInt(params.get('expires_in'), 10) || 3600;
+            this.tokenExpiresAt = Date.now() + (expiresInSec * 1000);
             await StorageManager.setSetting('gdrive_token', this.token);
+            await StorageManager.setSetting('gdrive_token_expires_at', this.tokenExpiresAt);
             return true;
         }
         return false;
     }
 
     async getFolderId() {
+        if (this.isTokenExpired()) {
+            await this.logout();
+            throw new Error('Unauthorized');
+        }
+
         // First check cache
         let folderId = await StorageManager.getSetting('gdrive_folder_id', null);
         if (folderId) return folderId;
@@ -84,6 +105,15 @@ class GoogleDriveAdapter {
                 mimeType: 'application/vnd.google-apps.folder' 
             })
         });
+
+        if (createRes.status === 401) {
+            await this.logout();
+            throw new Error('Unauthorized');
+        }
+
+        if (!createRes.ok) {
+            throw new Error(`Failed to create VideoLog folder on Google Drive: ${createRes.status}`);
+        }
         
         const createData = await createRes.json();
         folderId = createData.id;

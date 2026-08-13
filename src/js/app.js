@@ -34,7 +34,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.11').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.12').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -120,7 +120,10 @@ export class App {
         document.getElementById('stop-btn').addEventListener('click', () => this.stopRecording());
 
         document.getElementById('gdrive-connect-btn').addEventListener('click', () => {
-            if (CloudManager.gdrive.isConnected()) {
+            if (CloudManager.gdrive.isTokenExpired()) {
+                // Expired: skip the disconnect confirmation, go straight to re-auth
+                CloudManager.gdrive.login();
+            } else if (CloudManager.gdrive.isConnected()) {
                 if (confirm('Disconnect Google Drive?')) {
                     CloudManager.gdrive.logout().then(() => this.renderCloud());
                 }
@@ -158,10 +161,21 @@ export class App {
             }
 
             let count = 0;
+            let skipped = 0;
             const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
+
+            // Build a set of fileNames already known to the app to avoid duplicate entries
+            // when the same folder is scanned more than once.
+            const existingRecordings = await StorageManager.getAllRecordings();
+            const existingFileNames = new Set(existingRecordings.map(r => r.fileName).filter(Boolean));
 
             for await (const entry of this.dirHandle.values()) {
                 if (entry.kind === 'file' && entry.name.startsWith('Videolog -') && (entry.name.endsWith('.mp4') || entry.name.endsWith('.webm'))) {
+                    if (existingFileNames.has(entry.name)) {
+                        skipped++;
+                        continue;
+                    }
+
                     const file = await entry.getFile();
                     const parts = entry.name.replace(/\.[^/.]+$/, "").split(' - ');
                     const category = parts.length >= 3 ? parts[2] : 'General';
@@ -189,13 +203,17 @@ export class App {
                     };
 
                     await StorageManager.saveRecording(recordingObj);
+                    existingFileNames.add(entry.name);
                     count++;
                 }
             }
 
             if (count > 0) {
-                alert(`${count} ${dict.importedCount || 'recordings imported.'}`);
+                const skippedMsg = skipped > 0 ? ` (${skipped} already imported, skipped)` : '';
+                alert(`${count} ${dict.importedCount || 'recordings imported.'}${skippedMsg}`);
                 this.renderDashboard();
+            } else if (skipped > 0) {
+                alert(`No new recordings found. ${skipped} file(s) were already imported.`);
             } else {
                 alert('No matching Videolog files found in this folder.');
             }
@@ -385,21 +403,33 @@ export class App {
         const gBtn = document.getElementById('gdrive-connect-btn');
         const gBtnText = document.getElementById('gdrive-btn-text');
 
-        if (CloudManager.gdrive.isConnected()) {
+        const connected = CloudManager.gdrive.isConnected();
+        const expired = connected && CloudManager.gdrive.isTokenExpired();
+
+        if (expired) {
+            gStatus.textContent = dict.sessionExpired || 'Session expired — please reconnect';
+            gStatus.classList.remove('text-slate-400', 'text-green-400');
+            gStatus.classList.add('text-amber-400');
+
+            gBtn.classList.remove('bg-slate-700', 'hover:bg-slate-600', 'border-slate-600', 'bg-red-900/40', 'hover:bg-red-900/60', 'border-red-800/50', 'text-red-400');
+            gBtn.classList.add('bg-amber-900/40', 'hover:bg-amber-900/60', 'border-amber-700/50', 'text-amber-400');
+            gBtnText.textContent = dict.reconnectGDrive || 'Reconnect Google Drive';
+            gBtn.querySelector('i').setAttribute('data-lucide', 'refresh-cw');
+        } else if (connected) {
             gStatus.textContent = dict.connected || 'Connected (Ready to Backup)';
-            gStatus.classList.remove('text-slate-400');
+            gStatus.classList.remove('text-slate-400', 'text-amber-400');
             gStatus.classList.add('text-green-400');
             
-            gBtn.classList.remove('bg-slate-700', 'hover:bg-slate-600', 'border-slate-600');
+            gBtn.classList.remove('bg-slate-700', 'hover:bg-slate-600', 'border-slate-600', 'bg-amber-900/40', 'hover:bg-amber-900/60', 'border-amber-700/50', 'text-amber-400');
             gBtn.classList.add('bg-red-900/40', 'hover:bg-red-900/60', 'border-red-800/50', 'text-red-400');
             gBtnText.textContent = dict.disconnect || 'Disconnect';
             gBtn.querySelector('i').setAttribute('data-lucide', 'log-out');
         } else {
             gStatus.textContent = dict.notConnected || 'Not connected';
-            gStatus.classList.remove('text-green-400');
+            gStatus.classList.remove('text-green-400', 'text-amber-400');
             gStatus.classList.add('text-slate-400');
             
-            gBtn.classList.remove('bg-red-900/40', 'hover:bg-red-900/60', 'border-red-800/50', 'text-red-400');
+            gBtn.classList.remove('bg-red-900/40', 'hover:bg-red-900/60', 'border-red-800/50', 'text-red-400', 'bg-amber-900/40', 'hover:bg-amber-900/60', 'border-amber-700/50', 'text-amber-400');
             gBtn.classList.add('bg-slate-700', 'hover:bg-slate-600', 'border-slate-600', 'text-white');
             gBtnText.textContent = dict.connectGDrive || 'Connect Google Drive';
             gBtn.querySelector('i').setAttribute('data-lucide', 'log-in');
@@ -436,7 +466,7 @@ export class App {
                     </p>
                 </div>
                 <div class="flex space-x-1 shrink-0">
-                    ${!rec.cloudSynced && CloudManager.gdrive.isConnected() ? `
+                    ${!rec.cloudSynced && CloudManager.gdrive.isConnected() && !CloudManager.gdrive.isTokenExpired() ? `
                         <button onclick="window.uploadVideo('${rec.id}')" id="upload-btn-${rec.id}" class="bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white p-1.5 rounded transition" title="Backup to Cloud">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                         </button>
@@ -518,19 +548,26 @@ export class App {
 
         await this.renderQuestionsEditor();
 
-        document.getElementById('username-input').addEventListener('change', async (e) => {
-            this.username = e.target.value.trim() || 'User';
-            document.getElementById('header-username').textContent = this.username;
-            await StorageManager.setSetting('username', this.username);
-        });
+        // Bind these handlers once (initListeners runs a single time at boot).
+        // renderSettings() is called every time the Settings tab is opened, so
+        // any addEventListener here would accumulate duplicate listeners.
+        if (!this._settingsListenersBound) {
+            document.getElementById('username-input').addEventListener('change', async (e) => {
+                this.username = e.target.value.trim() || 'User';
+                document.getElementById('header-username').textContent = this.username;
+                await StorageManager.setSetting('username', this.username);
+            });
 
-        document.getElementById('language-selector').addEventListener('change', async (e) => {
-            this.currentLang = e.target.value;
-            await StorageManager.setSetting('language', this.currentLang);
-            this.applyTranslations();
-            await this.loadQuestionsForActivePack();
-            await this.renderSettings();
-        });
+            document.getElementById('language-selector').addEventListener('change', async (e) => {
+                this.currentLang = e.target.value;
+                await StorageManager.setSetting('language', this.currentLang);
+                this.applyTranslations();
+                await this.loadQuestionsForActivePack();
+                await this.renderQuestionsEditor(); // refresh list only, avoid re-render loop
+            });
+
+            this._settingsListenersBound = true;
+        }
 
         document.getElementById('download-ics-btn').onclick = () => this.downloadICS();
     }
@@ -618,6 +655,7 @@ export class App {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     async startSession() {
@@ -870,7 +908,11 @@ export class App {
             return;
         }
 
+        // Revoke any previously created object URL before creating a new one
+        this.closeVideoModal();
+
         const url = URL.createObjectURL(rec.blob);
+        this.currentModalUrl = url;
         document.getElementById('modal-category').textContent = rec.category;
         document.getElementById('modal-question').textContent = rec.questionText;
         document.getElementById('modal-timestamp').textContent = new Date(rec.timestamp).toLocaleString();
@@ -887,6 +929,10 @@ export class App {
         const videoEl = document.getElementById('modal-video');
         videoEl.pause();
         videoEl.src = '';
+        if (this.currentModalUrl) {
+            URL.revokeObjectURL(this.currentModalUrl);
+            this.currentModalUrl = null;
+        }
         document.getElementById('video-modal').classList.add('hidden');
     }
 }
