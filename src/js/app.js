@@ -34,7 +34,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.7').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.9').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -468,10 +468,15 @@ export class App {
             await CloudManager.gdrive.uploadVideo(rec);
             rec.cloudSynced = true;
             await StorageManager.saveRecording(rec);
-            this.renderDashboard();
+            this.renderDashboard(); // Re-render to show green cloud and hide button
         } catch (err) {
             console.error('Manual upload failed:', err);
-            alert('Upload failed. Please check your connection or re-authenticate.');
+            if (err.message === 'Unauthorized') {
+                alert('Session expired. Please reconnect Google Drive in the Cloud Sync tab.');
+                this.switchView('cloud');
+            } else {
+                alert(`Upload failed: ${err.message}. Please check your connection or re-authenticate.`);
+            }
             if (btn) {
                 btn.classList.remove('animate-pulse', 'opacity-50');
                 btn.disabled = false;

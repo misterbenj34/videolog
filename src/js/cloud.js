@@ -49,12 +49,20 @@ class GoogleDriveAdapter {
         // Search for 'VideoLog' folder created by this app
         const query = encodeURIComponent("name='VideoLog' and mimeType='application/vnd.google-apps.folder' and trashed=false");
         const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&spaces=drive`, {
-            headers: { 'Authorization': `Bearer ${this.token}` }
+            method: 'GET',
+            headers: { 
+                'Authorization': `Bearer ${this.token}`,
+                'Accept': 'application/json'
+            }
         });
         
         if (res.status === 401) { 
             await this.logout(); 
             throw new Error('Unauthorized'); 
+        }
+        
+        if (!res.ok) {
+            throw new Error(`Google Drive API error during folder search: ${res.status}`);
         }
         
         const data = await res.json();
@@ -98,8 +106,8 @@ class GoogleDriveAdapter {
             headers: {
                 'Authorization': `Bearer ${this.token}`,
                 'Content-Type': 'application/json',
-                'X-Upload-Content-Type': recordingObj.mimeType,
-                'X-Upload-Content-Length': recordingObj.blob.size
+                'X-Upload-Content-Type': recordingObj.mimeType || 'video/mp4',
+                'X-Upload-Content-Length': recordingObj.blob.size.toString()
             },
             body: JSON.stringify(metadata)
         });
@@ -107,6 +115,10 @@ class GoogleDriveAdapter {
         if (initRes.status === 401) { 
             await this.logout(); 
             throw new Error('Unauthorized'); 
+        }
+
+        if (!initRes.ok) {
+            throw new Error(`Google Drive upload init failed: ${initRes.status}`);
         }
 
         const uploadUrl = initRes.headers.get('Location');
@@ -117,7 +129,8 @@ class GoogleDriveAdapter {
         const uploadRes = await fetch(uploadUrl, {
             method: 'PUT',
             headers: {
-                'Content-Length': recordingObj.blob.size
+                'Content-Length': recordingObj.blob.size.toString(),
+                'Content-Type': recordingObj.mimeType || 'video/mp4'
             },
             body: recordingObj.blob
         });
