@@ -338,4 +338,39 @@ describe('App UI Interactions', () => {
         const allRecs = await StorageManager.getAllRecordings();
         expect(allRecs.find(r => r.id === 'rec_delete_test')).toBeUndefined();
     });
+
+    it('should show error when cloud upload fails due to unauthorized or network', async () => {
+        const { StorageManager } = await import('../src/js/storage.js');
+        await StorageManager.saveRecording({
+            id: 'rec_upload_fail',
+            timestamp: new Date().toISOString(),
+            questionId: 'q1',
+            questionText: 'Upload test',
+            category: 'General',
+            blob: new Blob(['fake video data'], { type: 'video/mp4' }),
+            duration: 10,
+            mimeType: 'video/mp4',
+            cloudSynced: false
+        });
+
+        vi.spyOn(CloudManager.gdrive, 'isConnected').mockReturnValue(true);
+        vi.spyOn(CloudManager.gdrive, 'uploadVideo').mockRejectedValue(new Error('Unauthorized'));
+
+        // Bind global handler manually for JSDOM
+        window.uploadVideo = function(id) { if(window.app) window.app.uploadVideoManual(id); };
+        document.defaultView.uploadVideo = window.uploadVideo;
+
+        await app.renderDashboard();
+        
+        const uploadBtn = document.querySelector(`button[onclick="window.uploadVideo('rec_upload_fail')"]`);
+        expect(uploadBtn).not.toBeNull();
+        
+        window.uploadVideo('rec_upload_fail');
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // It should catch the Unauthorized error and show the alert
+        expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Session expired'));
+        // The button should be restored
+        expect(uploadBtn.disabled).toBe(false);
+    });
 });
