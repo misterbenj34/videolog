@@ -34,7 +34,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.10').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.11').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -458,8 +458,11 @@ export class App {
         if (!rec || !rec.blob || !CloudManager.gdrive.isConnected()) return;
 
         const btn = document.getElementById(`upload-btn-${id}`);
+        let originalHtml = '';
         if (btn) {
-            btn.classList.add('animate-pulse', 'opacity-50');
+            originalHtml = btn.innerHTML;
+            btn.innerHTML = `<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+            btn.classList.add('cursor-not-allowed', 'opacity-70');
             btn.disabled = true;
         }
 
@@ -477,7 +480,8 @@ export class App {
                 alert(`Upload failed: ${err.message}. Please check your connection or re-authenticate.`);
             }
             if (btn) {
-                btn.classList.remove('animate-pulse', 'opacity-50');
+                btn.innerHTML = originalHtml;
+                btn.classList.remove('cursor-not-allowed', 'opacity-70');
                 btn.disabled = false;
             }
         }
