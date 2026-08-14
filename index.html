@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>VideoLog - Time Capsule</title>
-    <!-- Standardized SVG Favicon for universal support -->
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="apple-touch-icon" href="favicon.svg">
+    <!-- PNG icons: required by Firefox (it ignores SVG/data-URI manifest icons) and iOS -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <!-- Tailwind CSS CDN -->
@@ -168,7 +169,7 @@
 
             <!-- Version Footer -->
             <div class="text-center py-2 text-[10px] text-slate-500 font-mono shrink-0">
-                VideoLog v0.6.15 • Local-First PWA
+                VideoLog v0.6.16 • Local-First PWA
             </div>
         </section>
 
