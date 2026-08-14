@@ -44,7 +44,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.16').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.17').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -125,6 +125,7 @@ export class App {
         document.getElementById('nav-dashboard').addEventListener('click', () => this.switchView('dashboard'));
         document.getElementById('nav-settings').addEventListener('click', () => this.switchView('settings'));
         document.getElementById('nav-cloud').addEventListener('click', () => this.switchView('cloud'));
+        document.getElementById('nav-about').addEventListener('click', () => this.switchView('about'));
 
         document.getElementById('record-btn').addEventListener('click', () => this.startRecording());
         document.getElementById('stop-btn').addEventListener('click', () => this.stopRecording());
@@ -383,6 +384,7 @@ export class App {
         document.getElementById('view-recorder').classList.add('hidden');
         document.getElementById('view-settings').classList.add('hidden');
         document.getElementById('view-cloud').classList.add('hidden');
+        document.getElementById('view-about').classList.add('hidden');
 
         document.querySelectorAll('.nav-btn').forEach(btn => {
             const target = btn.getAttribute('data-target');
@@ -407,6 +409,9 @@ export class App {
         } else if (viewName === 'cloud') {
             document.getElementById('view-cloud').classList.remove('hidden');
             this.renderCloud();
+        } else if (viewName === 'about') {
+            document.getElementById('view-about').classList.remove('hidden');
+            lucide.createIcons();
         }
     }
 

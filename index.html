@@ -30,17 +30,6 @@
     <main class="flex-1 max-w-md w-full mx-auto p-3 pb-20 flex flex-col overflow-hidden">
         <!-- Dashboard View -->
         <section id="view-dashboard" class="flex-1 flex flex-col space-y-4 overflow-y-auto">
-            <!-- Motivating Manifesto Card -->
-            <div class="bg-gradient-to-br from-blue-900/40 via-slate-800 to-slate-800 border border-blue-500/30 rounded-xl p-4 shadow-lg shrink-0 space-y-2">
-                <div class="flex items-center space-x-2 text-blue-400">
-                    <i data-lucide="sparkles" class="w-4 h-4"></i>
-                    <h2 class="text-xs font-bold uppercase tracking-wider" data-i18n="manifestoTitle">Your Personal Time Capsule</h2>
-                </div>
-                <p class="text-xs text-slate-300 leading-relaxed" data-i18n="manifestoText">
-                    Life moves fast. Perspectives shift, ambitions evolve, and memories blur. VideoLog is your private space to pause every 6 months—capturing your raw mindset, your current challenges, and your vision of the world. In a few years, your future self will thank you for preserving who you were today.
-                </p>
-            </div>
-
             <button id="start-session-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm shrink-0">
                 <i data-lucide="video" class="w-5 h-5"></i>
                 <span data-i18n="startRecording">Start Recording Session</span>
@@ -169,7 +158,7 @@
 
             <!-- Version Footer -->
             <div class="text-center py-2 text-[10px] text-slate-500 font-mono shrink-0">
-                VideoLog v0.6.16 • Local-First PWA
+                VideoLog v0.6.17 • Local-First PWA
             </div>
         </section>
 
@@ -224,6 +213,63 @@
                 </div>
             </div>
         </section>
+
+        <!-- About View -->
+        <section id="view-about" class="hidden flex-1 flex flex-col space-y-4 overflow-y-auto">
+            <!-- Intro / Manifesto (moved from Dashboard) -->
+            <div class="bg-gradient-to-br from-blue-900/40 via-slate-800 to-slate-800 border border-blue-500/30 rounded-xl p-4 shadow-lg shrink-0 space-y-2">
+                <div class="flex items-center space-x-2 text-blue-400">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-wider" data-i18n="manifestoTitle">Your Personal Time Capsule</h2>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed" data-i18n="manifestoText">
+                    Life moves fast. Perspectives shift, ambitions evolve, and memories blur. VideoLog is your private space to pause every 6 months—capturing your raw mindset, your current challenges, and your vision of the world. In a few years, your future self will thank you for preserving who you were today.
+                </p>
+            </div>
+
+            <!-- 100% Local badge -->
+            <div class="bg-emerald-900/30 border border-emerald-500/40 rounded-xl p-3 flex items-center space-x-3">
+                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+                <p class="text-[11px] text-emerald-200 leading-snug" data-i18n="aboutLocal">100% local — your data never leaves this device unless you choose to back it up.</p>
+            </div>
+
+            <!-- What is VideoLog -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow space-y-2">
+                <h3 class="text-xs font-bold text-white" data-i18n="aboutWhatTitle">What is VideoLog?</h3>
+                <p class="text-[11px] text-slate-300 leading-relaxed" data-i18n="aboutWhatText"></p>
+            </div>
+
+            <!-- Privacy FAQ -->
+            <div class="space-y-2">
+                <h3 class="text-xs font-bold text-white" data-i18n="aboutFaqTitle">Your questions about privacy</h3>
+                <p class="text-[10px] text-slate-500 uppercase tracking-wider" data-i18n="aboutFaqLead">In simple words</p>
+
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-1">
+                    <p class="text-xs font-semibold text-white" data-i18n="aboutQ1"></p>
+                    <p class="text-[11px] text-slate-300 leading-relaxed" data-i18n="aboutA1"></p>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-1">
+                    <p class="text-xs font-semibold text-white" data-i18n="aboutQ2"></p>
+                    <p class="text-[11px] text-slate-300 leading-relaxed" data-i18n="aboutA2"></p>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-1">
+                    <p class="text-xs font-semibold text-white" data-i18n="aboutQ3"></p>
+                    <p class="text-[11px] text-slate-300 leading-relaxed" data-i18n="aboutA3"></p>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-1">
+                    <p class="text-xs font-semibold text-white" data-i18n="aboutQ4"></p>
+                    <p class="text-[11px] text-slate-300 leading-relaxed" data-i18n="aboutA4"></p>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-1">
+                    <p class="text-xs font-semibold text-white" data-i18n="aboutQ5"></p>
+                    <p class="text-[11px] text-slate-300 leading-relaxed" data-i18n="aboutA5"></p>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-1">
+                    <p class="text-xs font-semibold text-white" data-i18n="aboutQ6"></p>
+                    <p class="text-[11px] text-slate-300 leading-relaxed" data-i18n="aboutA6"></p>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Bottom Navigation Bar -->
@@ -239,6 +285,10 @@
         <button id="nav-settings" class="nav-btn flex flex-col items-center text-slate-400 hover:text-white space-y-0.5 transition" data-target="settings">
             <i data-lucide="settings" class="w-5 h-5"></i>
             <span class="text-[10px]" data-i18n="settings">Settings</span>
+        </button>
+        <button id="nav-about" class="nav-btn flex flex-col items-center text-slate-400 hover:text-white space-y-0.5 transition" data-target="about">
+            <i data-lucide="info" class="w-5 h-5"></i>
+            <span class="text-[10px]" data-i18n="about">About</span>
         </button>
     </nav>
 

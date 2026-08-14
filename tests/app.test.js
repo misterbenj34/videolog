@@ -142,6 +142,17 @@ describe('App UI Interactions', () => {
         expect(document.getElementById('view-settings').classList.contains('hidden')).toBe(false);
     });
 
+    it('should switch to about view when about nav button is clicked and show privacy content', () => {
+        document.getElementById('nav-about').click();
+        expect(app.currentView).toBe('about');
+        expect(document.getElementById('view-dashboard').classList.contains('hidden')).toBe(true);
+        expect(document.getElementById('view-about').classList.contains('hidden')).toBe(false);
+        // The intro/manifesto and the local-first privacy badge are present
+        expect(document.querySelector('[data-i18n="manifestoTitle"]').textContent).toContain('Your Personal Time Capsule');
+        expect(document.querySelector('[data-i18n="aboutLocal"]')).toBeTruthy();
+        expect(document.querySelector('[data-i18n="aboutQ1"]')).toBeTruthy();
+    });
+
     it('should switch to cloud view when cloud nav button is clicked', () => {
         document.getElementById('nav-cloud').click();
         expect(app.currentView).toBe('cloud');
