@@ -39,12 +39,23 @@ export class App {
         this.initPWA();
         this.initListeners();
         this.loadAppData();
+
+        // Safety net: never leave the splash screen up, even if app boot fails
+        setTimeout(() => this.hideSplash(), 6000);
+    }
+
+    hideSplash() {
+        const splash = document.getElementById('app-splash');
+        if (!splash) return;
+        splash.style.transition = 'opacity 0.5s ease';
+        splash.style.opacity = '0';
+        setTimeout(() => splash.remove(), 600);
     }
 
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.17').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.18').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -283,6 +294,9 @@ export class App {
         document.getElementById('header-username').textContent = this.username;
         this.applyTranslations();
         this.renderDashboard();
+
+        // App is ready — reveal the UI by fading out the launch splash
+        this.hideSplash();
     }
 
     showOnboardingModal(allQuestions, currentSelected) {
