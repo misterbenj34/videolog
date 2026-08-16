@@ -197,18 +197,18 @@ describe('App UI Interactions', () => {
         expect(document.getElementById('view-recorder').classList.contains('hidden')).toBe(true);
     });
 
-    it('should require a username and not start recording when missing', async () => {
-        app.username = '';
+    it('should NOT block recording when no username is set (falls back to Anonymous)', async () => {
+        app.username = ''; // no username provided
         document.getElementById('start-session-btn').click();
         await new Promise(resolve => setTimeout(resolve, 50));
-        // Recording should be blocked -> stays on dashboard, no recorder view
-        expect(app.currentView).toBe('settings'); // routes to settings to prompt for the name
-        expect(document.getElementById('view-recorder').classList.contains('hidden')).toBe(true);
+        // Recording is allowed even without an explicit username
+        expect(app.currentView).toBe('recorder');
+        expect(document.getElementById('view-recorder').classList.contains('hidden')).toBe(false);
     });
 
-    it('should have NO default username (must be user-provided)', () => {
+    it('should have NO default username (empty until provided; displays "Anonymous")', () => {
         expect(app.username).toBe('');
-        expect(document.getElementById('header-username').textContent).toBe('');
+        expect(document.getElementById('header-username').textContent).toBe('Anonymous');
         expect(document.querySelector('[data-i18n="manifestoTitle"]').textContent).toContain('Your Personal Time Capsule');
     });
 
@@ -226,7 +226,7 @@ describe('App UI Interactions', () => {
         expect(document.getElementById('header-username').textContent).toBe('Alice');
     });
 
-    it('should reject an empty username in settings (no silent fallback)', async () => {
+    it('should fall back to Anonymous when username is cleared in settings', async () => {
         app.username = 'Alex';
         document.getElementById('header-username').textContent = 'Alex';
         app.switchView('settings');
@@ -237,9 +237,9 @@ describe('App UI Interactions', () => {
         input.dispatchEvent(new Event('change'));
         await new Promise(resolve => setTimeout(resolve, 50));
 
-        // Username is unchanged, not defaulted
-        expect(app.username).toBe('Alex');
-        expect(document.getElementById('header-username').textContent).toBe('Alex');
+        // Username falls back to "Anonymous", never a hardcoded name
+        expect(app.username).toBe('Anonymous');
+        expect(document.getElementById('header-username').textContent).toBe('Anonymous');
     });
 
     it('should update language and re-translate UI', async () => {

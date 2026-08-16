@@ -44,7 +44,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.21').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.22').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -280,7 +280,7 @@ export class App {
 
         await this.loadQuestionsForActivePack();
 
-        document.getElementById('header-username').textContent = this.username;
+        document.getElementById('header-username').textContent = this.username || 'Anonymous';
         this.applyTranslations();
         this.renderDashboard();
     }
@@ -290,24 +290,16 @@ export class App {
         modal.classList.remove('hidden');
         this.renderOnboardingList(allQuestions, currentSelected);
 
-        // Prefill the username field with any existing value (usually empty on first launch)
+        // Prefill the username field with any existing value (usually empty on first launch).
+        // The username is OPTIONAL — if left blank, it defaults to "Anonymous".
         const usernameInput = document.getElementById('onboarding-username-input');
         if (usernameInput) usernameInput.value = this.username;
 
         const saveUsername = () => {
             const name = (usernameInput?.value || '').trim();
-            const errEl = document.getElementById('onboarding-username-error');
-            if (!name) {
-                const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
-                if (errEl) errEl.classList.remove('hidden');
-                else alert(dict.usernameRequired || 'Please enter a name to continue.');
-                usernameInput.focus();
-                return false;
-            }
-            this.username = name;
+            this.username = name || 'Anonymous';
             document.getElementById('header-username').textContent = this.username;
             StorageManager.setSetting('username', this.username);
-            return true;
         };
 
         // Keep the inline hint in sync as the user types
@@ -317,7 +309,7 @@ export class App {
         });
 
         document.getElementById('skip-onboarding-btn').onclick = async () => {
-            if (!saveUsername()) return;
+            saveUsername(); // never mandatory; falls back to "Anonymous"
             modal.classList.add('hidden');
             const defaults = allQuestions.filter(q => q.defaultSelected).map(q => q.id);
             this.activeQuestionIds = defaults;
@@ -326,7 +318,7 @@ export class App {
         };
 
         document.getElementById('save-onboarding-btn').onclick = async () => {
-            if (!saveUsername()) return;
+            saveUsername();
             if (this.tempSelectedIds.length === 0) {
                 alert('Please select at least 1 question.');
                 return;
@@ -336,19 +328,6 @@ export class App {
             await StorageManager.setSetting('activeQuestions', this.activeQuestionIds);
             await this.loadQuestionsForActivePack();
         };
-    }
-
-    validateUsername() {
-        const name = (this.username || '').trim();
-        if (name) return true;
-        const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
-        alert(dict.usernameRequired || 'Please set your name in Settings before recording.');
-        this.switchView('settings');
-        setTimeout(() => {
-            const input = document.getElementById('username-input');
-            if (input) input.focus();
-        }, 50);
-        return false;
     }
 
     renderOnboardingList(allQuestions, selectedIds) {
@@ -612,16 +591,11 @@ export class App {
         // any addEventListener here would accumulate duplicate listeners.
         if (!this._settingsListenersBound) {
             document.getElementById('username-input').addEventListener('change', async (e) => {
-                const name = e.target.value.trim();
-                if (!name) {
-                    // Reject empty: keep the previous value and tell the user.
-                    const dict = TRANSLATIONS[this.currentLang] || TRANSLATIONS['en'];
-                    alert(dict.usernameRequired || 'Name cannot be empty.');
-                    document.getElementById('username-input').value = this.username;
-                    return;
-                }
+                // Optional: an empty name falls back to "Anonymous".
+                const name = e.target.value.trim() || 'Anonymous';
                 this.username = name;
-                document.getElementById('header-username').textContent = this.username;
+                document.getElementById('username-input').value = name;
+                document.getElementById('header-username').textContent = name;
                 await StorageManager.setSetting('username', this.username);
             });
 
@@ -755,8 +729,6 @@ export class App {
     }
 
     async startSession() {
-        // A username is required — it appears in the session overlay and the saved file name.
-        if (!this.validateUsername()) return;
         this.currentQuestionIndex = 0;
         this.switchView('recorder');
         await this.initCamera();
@@ -813,7 +785,7 @@ export class App {
         const dateStr = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 8);
         const q = this.questions[this.currentQuestionIndex] || {};
         const cat = (q.category || 'General').toUpperCase();
-        const user = (this.username || 'USER').toUpperCase();
+        const user = (this.username || 'Anonymous').toUpperCase();
 
         ctx.save();
 
@@ -939,7 +911,7 @@ export class App {
 
         const now = new Date();
         const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '');
-        const cleanUsername = (this.username || 'User').replace(/[^a-zA-Z0-9-_]/g, '_');
+        const cleanUsername = (this.username || 'Anonymous').replace(/[^a-zA-Z0-9-_]/g, '_');
         const cleanCategory = (q.category || 'General').replace(/[^a-zA-Z0-9-_]/g, '_');
         
         const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
