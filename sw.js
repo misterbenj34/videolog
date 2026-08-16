@@ -1,12 +1,11 @@
-const CACHE_NAME = 'videolog-v0.6.18';
-const VERSION = '0.6.18';
+const CACHE_NAME = 'videolog-v0.6.17';
+const VERSION = '0.6.17';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
     './icons/icon-192.png',
     './icons/icon-512.png',
-    './assets/splash.jpg',
     `./src/js/app.js?v=${VERSION}`,
     `./src/js/storage.js?v=${VERSION}`,
     `./src/js/packs.js?v=${VERSION}`,
