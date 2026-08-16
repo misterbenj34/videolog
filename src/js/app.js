@@ -44,7 +44,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.17').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.19').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -480,7 +480,7 @@ export class App {
                     <h4 class="font-medium text-white text-xs truncate">${escapeHtml(rec.questionText)}</h4>
                     <p class="text-[10px] text-slate-400 mt-0.5">
                         ${new Date(rec.timestamp).toLocaleDateString()} ${new Date(rec.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${Math.round(rec.duration)}s
-                        ${rec.cloudSynced ? '<span class="ml-1.5 inline-flex align-text-bottom" title="Backed up to cloud"><svg class="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg></span>' : ''}
+                        ${rec.cloudSynced ? '<span class="ml-1.5 inline-flex align-text-bottom" title="Backed up to cloud"><svg class="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 15l-5.5 5.5L9 18"></path><path d="M5.516 16.07A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 3.501 7.327"></path></svg></span>' : ''}
                     </p>
                 </div>
                 <div class="flex space-x-1 shrink-0">
