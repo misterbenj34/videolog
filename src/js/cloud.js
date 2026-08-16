@@ -26,13 +26,32 @@ class GoogleDriveAdapter {
         return Date.now() >= this.tokenExpiresAt;
     }
 
-    login() {
-        // Ensure redirect URI perfectly matches what is registered in Google Cloud Console
-        // By default, GitHub Pages resolves to the folder root
+    buildAuthUrl() {
+        // Ensure redirect URI perfectly matches what is registered in Google Cloud Console.
+        // By default, GitHub Pages resolves to the folder root.
         const redirectUri = 'https://misterbenj34.github.io/videolog/';
-        
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${G_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(G_SCOPE)}&include_granted_scopes=true`;
-        window.location.href = authUrl;
+        return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${G_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(G_SCOPE)}&include_granted_scopes=true`;
+    }
+
+    login() {
+        const authUrl = this.buildAuthUrl();
+        const popup = window.open(authUrl, 'videolog_oauth', 'width=520,height=640,left=120,top=120');
+        if (!popup) {
+            // Popup blocked (or window.open silently failed): fall back to an in-page
+            // navigation so reconnecting never silently fails.
+            window.location.href = authUrl;
+        }
+        // Otherwise the main page stays exactly as-is; the token comes back through
+        // a postMessage (handled in app.js) instead of a full page reload.
+    }
+
+    // Called by app.js when the OAuth popup messages the token back to the main window.
+    async receiveToken(accessToken, expiresInSec) {
+        this.token = accessToken;
+        this.tokenExpiresAt = Date.now() + ((parseInt(expiresInSec, 10) || 3600) * 1000);
+        await StorageManager.setSetting('gdrive_token', this.token);
+        await StorageManager.setSetting('gdrive_token_expires_at', this.tokenExpiresAt);
+        return true;
     }
 
     async logout() {

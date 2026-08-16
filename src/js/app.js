@@ -44,7 +44,7 @@ export class App {
     initPWA() {
         if ('serviceWorker' in navigator) {
             // The ?v= query param ensures we bypass HTTP cache for the worker file itself
-            navigator.serviceWorker.register('./sw.js?v=0.6.22').then((reg) => {
+            navigator.serviceWorker.register('./sw.js?v=0.6.23').then((reg) => {
                 this.registration = reg;
                 reg.update();
                 setInterval(() => { reg.update(); }, 15 * 60 * 1000);
@@ -140,6 +140,19 @@ export class App {
                 }
             } else {
                 CloudManager.gdrive.login();
+            }
+        });
+
+        // Receive the Google OAuth token from the popup window (popup flow). The main
+        // page is never navigated, so its rendering stays exactly as the user left it.
+        // We only refresh the cloud connection state in place.
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+            const data = event.data;
+            if (data && data.type === 'VIDEOLOG_OAUTH' && data.access_token) {
+                CloudManager.gdrive.receiveToken(data.access_token, data.expires_in)
+                    .then(() => this.renderCloud())
+                    .catch(err => console.error('Failed to store Drive token:', err));
             }
         });
     }
@@ -242,12 +255,28 @@ export class App {
 
         // Handle OAuth Callback if present in URL
         if (window.location.hash) {
+            const params = new URLSearchParams(window.location.hash.substring(1));
             const handled = await CloudManager.handleAuthCallback(window.location.hash);
             if (handled) {
                 // Clean the URL so the user doesn't bookmark the access token
                 window.history.replaceState(null, '', window.location.pathname);
-                // Immediately show cloud view so they see they are connected
-                this.currentView = 'cloud';
+                if (window.opener) {
+                    // We're the OAuth popup: forward the token to the main window and close.
+                    // The main window never navigates, so its rendering stays unchanged.
+                    const accessToken = params.get('access_token');
+                    const expiresIn = parseInt(params.get('expires_in'), 10) || 3600;
+                    try {
+                        window.opener.postMessage({
+                            type: 'VIDEOLOG_OAUTH',
+                            access_token: accessToken,
+                            expires_in: expiresIn
+                        }, window.location.origin);
+                    } catch (e) { /* origin mismatch — ignore */ }
+                    window.close();
+                } else {
+                    // Direct navigation return (or popup-blocked fallback): show cloud view.
+                    this.currentView = 'cloud';
+                }
             }
         }
 

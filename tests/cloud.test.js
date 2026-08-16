@@ -253,4 +253,42 @@ describe('CloudManager / GoogleDriveAdapter', () => {
             expect(await CloudManager.handleAuthCallback('#some_other_param=1')).toBe(false);
         });
     });
+
+    describe('popup login (page stays unchanged)', () => {
+        it('should open an OAuth popup and NOT navigate the main page', () => {
+            const openSpy = vi.fn(() => ({}));
+            vi.stubGlobal('open', openSpy);
+            const loc = { href: 'http://localhost/' };
+            vi.stubGlobal('location', loc);
+
+            CloudManager.gdrive.login();
+
+            expect(openSpy).toHaveBeenCalledTimes(1);
+            const [url] = openSpy.mock.calls[0];
+            expect(url).toContain('accounts.google.com/o/oauth2/v2/auth');
+            expect(url).toContain('client_id=');
+            // The page must NOT have been redirected away.
+            expect(loc.href).toBe('http://localhost/');
+            vi.unstubAllGlobals();
+        });
+
+        it('should fall back to in-page navigation if the popup is blocked', () => {
+            const openSpy = vi.fn(() => null); // popup blocked
+            vi.stubGlobal('open', openSpy);
+            const loc = { href: 'http://localhost/' };
+            vi.stubGlobal('location', loc);
+
+            CloudManager.gdrive.login();
+
+            expect(loc.href).toContain('accounts.google.com');
+            vi.unstubAllGlobals();
+        });
+
+        it('should store the token and expiry via receiveToken', async () => {
+            await CloudManager.gdrive.receiveToken('tok123', 3600);
+            expect(CloudManager.gdrive.token).toBe('tok123');
+            expect(CloudManager.gdrive.tokenExpiresAt).toBeGreaterThan(Date.now());
+            expect(await StorageManager.getSetting('gdrive_token', null)).toBe('tok123');
+        });
+    });
 });
