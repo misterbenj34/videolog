@@ -78,6 +78,7 @@ describe('Recording Flow Bug', () => {
 
     it('should transition to next question or dashboard when recording is stopped', async () => {
         // Start session
+        app.username = 'Test'; // recording requires a username
         document.getElementById('start-session-btn').click();
         await new Promise(resolve => setTimeout(resolve, 50));
         

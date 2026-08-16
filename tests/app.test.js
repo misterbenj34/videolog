@@ -173,6 +173,7 @@ describe('App UI Interactions', () => {
         const startBtn = document.getElementById('start-session-btn');
         expect(startBtn).not.toBeNull();
         
+        app.username = 'Test'; // recording requires a username
         startBtn.click();
         
         // Allow async camera init
@@ -185,6 +186,7 @@ describe('App UI Interactions', () => {
     });
 
     it('should cancel recording and return to dashboard', async () => {
+        app.username = 'Test'; // recording requires a username
         document.getElementById('start-session-btn').click();
         await new Promise(resolve => setTimeout(resolve, 50)); // wait for init
 
@@ -195,8 +197,18 @@ describe('App UI Interactions', () => {
         expect(document.getElementById('view-recorder').classList.contains('hidden')).toBe(true);
     });
 
-    it('should have required UI elements loaded with text', () => {
-        expect(document.getElementById('header-username').textContent).toBe('Benjamin');
+    it('should require a username and not start recording when missing', async () => {
+        app.username = '';
+        document.getElementById('start-session-btn').click();
+        await new Promise(resolve => setTimeout(resolve, 50));
+        // Recording should be blocked -> stays on dashboard, no recorder view
+        expect(app.currentView).toBe('settings'); // routes to settings to prompt for the name
+        expect(document.getElementById('view-recorder').classList.contains('hidden')).toBe(true);
+    });
+
+    it('should have NO default username (must be user-provided)', () => {
+        expect(app.username).toBe('');
+        expect(document.getElementById('header-username').textContent).toBe('');
         expect(document.querySelector('[data-i18n="manifestoTitle"]').textContent).toContain('Your Personal Time Capsule');
     });
 
@@ -212,6 +224,22 @@ describe('App UI Interactions', () => {
         await new Promise(resolve => setTimeout(resolve, 50)); // let async handlers settle
         expect(app.username).toBe('Alice');
         expect(document.getElementById('header-username').textContent).toBe('Alice');
+    });
+
+    it('should reject an empty username in settings (no silent fallback)', async () => {
+        app.username = 'Alex';
+        document.getElementById('header-username').textContent = 'Alex';
+        app.switchView('settings');
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const input = document.getElementById('username-input');
+        input.value = '   '; // blank
+        input.dispatchEvent(new Event('change'));
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Username is unchanged, not defaulted
+        expect(app.username).toBe('Alex');
+        expect(document.getElementById('header-username').textContent).toBe('Alex');
     });
 
     it('should update language and re-translate UI', async () => {
@@ -233,6 +261,7 @@ describe('App UI Interactions', () => {
         const canvas = document.getElementById('recorder-canvas');
         canvas.captureStream = vi.fn().mockReturnValue({ addTrack: vi.fn(), getTracks: () => [] });
         
+        app.username = 'Test'; // recording requires a username
         document.getElementById('start-session-btn').click();
         await new Promise(resolve => setTimeout(resolve, 50)); // init camera
         
